@@ -1,18 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "Dyad Chrome Extension Template",
-  "version": "1.0.0",
-  "description": "Minimal Chrome extension template for Dyad AI",
-  "permissions": ["storage", "scripting", "activeTab"],
-  "background": {
-    "service_worker": "background.js"
-  },
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"]
-    }
-  ],
+  "name": "Dyad AI Chatbot",
+  "version": "1.1.0",
+  "description": "A chatbot extension connecting to OpenAI, Anthropic, Hugging Face, and OpenRouter.",
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {

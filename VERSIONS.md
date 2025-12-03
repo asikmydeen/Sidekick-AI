@@ -6,3 +6,9 @@
 - Added content.js placeholder
 - Added popup.html and popup.js with simple ping functionality
 - Added styles.css for minimal popup styling
+
+## v1.1.0 – 2025-08-25
+- Added multi-provider chatbot functionality (OpenAI, OpenRouter, Hugging Face, Anthropic)
+- Updated popup.html to include settings and chat interface
+- Updated popup.js to fetch models dynamically and handle chat API requests
+- Updated manifest.json to include `host_permissions` for API access
