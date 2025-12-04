@@ -61,17 +61,23 @@ export async function fetchModels(provider, credentials) {
 
 // Stream generator function
 export async function* streamChatApi(state, newMsgContent, signal) {
+  console.log('[DEBUG] streamChatApi called', { provider: state.provider, model: state.model });
+
   const { provider, model, temperature, systemPrompt } = state;
   const messages = state.sessions.find(s => s.id === state.currentSessionId)?.messages || [];
 
+  console.log('[DEBUG] Getting credentials for provider:', provider);
   const credentials = getCurrentProviderCredentials();
 
   if (!credentials) {
+    console.error('[DEBUG] No credentials found for provider:', provider);
     throw new Error(`No credentials configured for provider: ${provider}`);
   }
 
+  console.log('[DEBUG] Credentials:', credentials);
+
   let url = '';
-  let headers = { 'Content-Type': 'application/json' };
+  let headers = {};
 
   // Prepare history
   const history = [];
