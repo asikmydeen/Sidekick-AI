@@ -21,14 +21,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (state.provider) {
     UI.elements.providerSelect.value = state.provider;
+    // Load provider-specific credentials
+    loadProviderCredentials(state.provider);
     handleProviderChange(state.provider);
   }
-  if (state.apiKey) UI.elements.apiKeyInput.value = state.apiKey;
-  if (state.endpoint) UI.elements.endpointInput.value = state.endpoint;
-  if (state.awsAccessKey) UI.elements.awsAccessKey.value = state.awsAccessKey;
-  if (state.awsSecretKey) UI.elements.awsSecretKey.value = state.awsSecretKey;
-  if (state.awsSessionToken) UI.elements.awsSessionToken.value = state.awsSessionToken;
-  if (state.awsRegion) UI.elements.awsRegion.value = state.awsRegion;
 
   if (state.systemPrompt) UI.elements.systemPromptInput.value = state.systemPrompt;
   if (state.temperature) {
@@ -132,18 +128,22 @@ function updateCredentialFieldsVisibility(provider) {
 }
 
 function handleProviderChange(provider) {
-  // Reset all
-  UI.elements.apiKeyGroup.classList.add('hidden');
-  UI.elements.endpointGroup.classList.add('hidden');
-  UI.elements.awsGroup.classList.add('hidden');
+  // Save current provider's credentials before switching
+  saveCurrentProviderCredentials();
 
-  if (provider === 'ollama') {
-    UI.elements.endpointGroup.classList.remove('hidden');
-  } else if (provider === 'bedrock') {
-    UI.elements.awsGroup.classList.remove('hidden');
-  } else {
-    UI.elements.apiKeyGroup.classList.remove('hidden');
-  }
+  // Update state
+  updateState({ provider });
+
+  // Load new provider's credentials
+  loadProviderCredentials(provider);
+
+  // Update UI visibility
+  updateCredentialFieldsVisibility(provider);
+
+  // Reset model selection
+  UI.elements.modelSelectionDiv.classList.add('hidden');
+  UI.elements.advancedSettings.classList.add('hidden');
+  UI.elements.startChatBtn.classList.add('hidden');
 }
 
 UI.elements.themeBtn.addEventListener('click', () => {
@@ -263,28 +263,28 @@ UI.elements.fileInput.addEventListener('change', async (e) => {
 
 UI.elements.fetchModelsBtn.addEventListener('click', async () => {
   const provider = UI.elements.providerSelect.value;
-  const key = UI.elements.apiKeyInput.value.trim();
-  const endpoint = UI.elements.endpointInput.value.trim();
-
-  // AWS Credentials
-  const awsAccessKey = UI.elements.awsAccessKey.value.trim();
-  const awsSecretKey = UI.elements.awsSecretKey.value.trim();
-  const awsSessionToken = UI.elements.awsSessionToken.value.trim();
-  const awsRegion = UI.elements.awsRegion.value.trim();
 
   if (!provider) return UI.showStatus('Select a provider.', 'error');
 
+  // Save current credentials
+  saveCurrentProviderCredentials();
+
+  // Get credentials for validation
+  const credentials = getProviderCredentials(provider);
+
+  // Validate credentials
   if (provider === 'bedrock') {
-    if (!awsAccessKey || !awsSecretKey) return UI.showStatus('Enter AWS Credentials.', 'error');
-  } else if (provider !== 'ollama' && !key) {
+    if (!credentials.accessKey || !credentials.secretKey) {
+      return UI.showStatus('Enter AWS Credentials.', 'error');
+    }
+  } else if (provider !== 'ollama' && !credentials.apiKey) {
     return UI.showStatus('Enter API Key.', 'error');
   }
 
-  updateState({ provider, apiKey: key, endpoint, awsAccessKey, awsSecretKey, awsSessionToken, awsRegion });
   UI.showStatus('Fetching...', 'info');
 
   try {
-    const models = await API.fetchModels(provider, key, endpoint, { accessKey: awsAccessKey, secretKey: awsSecretKey, sessionToken: awsSessionToken, region: awsRegion });
+    const models = await API.fetchModels(provider, credentials);
     if (!models.length) throw new Error('No models found.');
     UI.populateModelSelect(models);
     UI.showStatus(`Found ${models.length} models.`, 'success');

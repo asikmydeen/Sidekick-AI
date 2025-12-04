@@ -29,16 +29,18 @@ export let state = {
 
   // NEW: Provider-specific credentials
   providerCredentials: {
-    openai: { apiKey: '' },
-    openrouter: { apiKey: '' },
-    anthropic: { apiKey: '' },
-    huggingface: { apiKey: '' },
-    ollama: { endpoint: 'http://localhost:11434' },
+    openai: { apiKey: '', selectedModel: '', models: [] },
+    openrouter: { apiKey: '', selectedModel: '', models: [] },
+    anthropic: { apiKey: '', selectedModel: '', models: [] },
+    huggingface: { apiKey: '', selectedModel: '', models: [] },
+    ollama: { endpoint: 'http://localhost:11434', selectedModel: '', models: [] },
     bedrock: {
       accessKey: '',
       secretKey: '',
       sessionToken: '',
-      region: 'us-east-1'
+      region: 'us-east-1',
+      selectedModel: '',
+      models: []
     }
   }
 };
