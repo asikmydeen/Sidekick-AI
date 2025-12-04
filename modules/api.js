@@ -144,20 +144,16 @@ export async function* streamChatApi(state, newMsgContent, signal) {
 
         console.log('[Ollama] Request body:', JSON.stringify(body, null, 2));
 
-        // Use background service worker to bypass CORS (like Sider AI)
-        console.log('[Ollama] Sending request via service worker to bypass CORS');
-        const result = await chrome.runtime.sendMessage({
-          action: 'ollamaRequest',
-          url: url,
-          body: body
-        });
+        // Use iframe bridge to run request in localhost context (like Sider AI)
+        console.log('[Ollama] Sending request via iframe bridge');
+        const result = await sendViaOllamaBridge(url, body);
 
-        if (!result.success) {
-          console.error('[Ollama] Error from service worker:', result.error);
+        if (result.error) {
+          console.error('[Ollama] Error from bridge:', result.error);
           throw new Error(`Ollama API error: ${result.error}`);
         }
 
-        console.log('[Ollama] Response received from service worker');
+        console.log('[Ollama] Response received from bridge');
 
         // Parse the streamed response
         const lines = result.data.split('\n');
