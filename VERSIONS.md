@@ -84,3 +84,7 @@
 - **Background Script**: Added listener to open Side Panel on extension icon click.
 - **Responsive Layout**: Updated CSS to accommodate full-height sidebar layout.
 - **File Renaming**: Renamed `popup.html/.js` to `sidepanel.html/.js` for semantic correctness.
+
+## v2.1.1 – 2025-08-25
+- **Fix Side Panel Activation**: Re-verified `manifest.json` to ensure `default_popup` is removed from `action`.
+- **Background Logic**: Simplified `background.js` to reliably set `openPanelOnActionClick` behavior on install and startup.

@@ -1,19 +1,21 @@
 // background.js
 
+// Ensure the side panel opens when the extension icon is clicked
 function setupSidePanel() {
-  // Allow the side panel to open when the action icon is clicked
+  // Check if the API is available (it should be in Chrome 114+)
   if (chrome.sidePanel && chrome.sidePanel.setPanelBehavior) {
     chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
-      .catch((error) => console.error("Failed to set panel behavior:", error));
+      .catch((error) => console.error("Error setting panel behavior:", error));
   }
 }
 
+// Run on installation
 chrome.runtime.onInstalled.addListener(() => {
-  console.log("Extension installed.");
+  console.log("Extension installed - setting up side panel behavior.");
   setupSidePanel();
 });
 
-// Also try to set it immediately in case the worker wakes up and it wasn't set
+// Run every time the background script wakes up (just in case)
 setupSidePanel();
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
