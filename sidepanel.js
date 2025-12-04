@@ -231,9 +231,24 @@ UI.elements.themeBtn.addEventListener('click', () => {
 });
 
 // Expand to full page mode
-UI.elements.expandBtn.addEventListener('click', () => {
-  // Open the sidepanel.html as a full tab
-  chrome.tabs.create({ url: chrome.runtime.getURL('sidepanel.html') });
+if (UI.elements.expandBtn) {
+  UI.elements.expandBtn.addEventListener('click', () => {
+    // Open the sidepanel.html as a full tab
+    chrome.tabs.create({ url: chrome.runtime.getURL('sidepanel.html') });
+  });
+}
+
+// Gallery tab filtering
+document.querySelectorAll('.gallery-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.gallery-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const filter = tab.dataset.filter;
+    const session = getCurrentSession();
+    if (session) {
+      UI.renderMediaGallery(session.messages, filter);
+    }
+  });
 });
 
 UI.elements.settingsBtn.addEventListener('click', () => UI.toggleView('config'));
