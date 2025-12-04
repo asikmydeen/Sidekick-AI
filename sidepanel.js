@@ -129,6 +129,7 @@ function updateCredentialFieldsVisibility(provider) {
   UI.elements.apiKeyGroup.classList.add('hidden');
   UI.elements.endpointGroup.classList.add('hidden');
   UI.elements.awsGroup.classList.add('hidden');
+  UI.elements.hfTaskGroup.classList.add('hidden');
 
   // Show relevant credential group
   if (provider === 'ollama') {
@@ -137,6 +138,16 @@ function updateCredentialFieldsVisibility(provider) {
     UI.elements.awsGroup.classList.remove('hidden');
   } else {
     UI.elements.apiKeyGroup.classList.remove('hidden');
+  }
+
+  // Show HuggingFace task selector
+  if (provider === 'huggingface') {
+    UI.elements.hfTaskGroup.classList.remove('hidden');
+    // Load saved task
+    const credentials = getProviderCredentials(provider);
+    if (credentials?.task) {
+      UI.elements.hfTaskSelect.value = credentials.task;
+    }
   }
 }
 
@@ -147,9 +158,10 @@ function updateManualModelVisibility(provider) {
   if (MANUAL_MODEL_PROVIDERS.includes(provider)) {
     UI.elements.manualModelGroup.classList.remove('hidden');
 
-    // Set provider-specific hints
+    // Set provider-specific hints based on task
     if (provider === 'huggingface') {
-      UI.elements.modelHint.innerHTML = 'Format: <code>model-name</code> or <code>model-name:provider</code> (e.g., <code>deepseek-ai/DeepSeek-V3:novita</code>)';
+      const task = UI.elements.hfTaskSelect.value || 'chat';
+      updateHfTaskHint(task);
     } else if (provider === 'anthropic') {
       UI.elements.modelHint.innerHTML = 'e.g., <code>claude-sonnet-4-20250514</code>, <code>claude-3-5-haiku-20241022</code>';
     }
@@ -157,6 +169,38 @@ function updateManualModelVisibility(provider) {
     UI.elements.manualModelGroup.classList.add('hidden');
   }
 }
+
+function updateHfTaskHint(task) {
+  const hints = {
+    'chat': 'e.g., <code>meta-llama/Llama-3.2-3B-Instruct</code>, <code>deepseek-ai/DeepSeek-V3:novita</code>',
+    'text-to-image': 'e.g., <code>black-forest-labs/FLUX.1-dev</code>, <code>stabilityai/stable-diffusion-xl-base-1.0</code>',
+    'image-to-text': 'e.g., <code>Salesforce/blip-image-captioning-large</code>',
+    'text-to-speech': 'e.g., <code>facebook/mms-tts-eng</code>, <code>suno/bark-small</code>',
+    'speech-to-text': 'e.g., <code>openai/whisper-large-v3</code>'
+  };
+  UI.elements.modelHint.innerHTML = hints[task] || hints['chat'];
+}
+
+// Handle HuggingFace task change
+UI.elements.hfTaskSelect.addEventListener('change', () => {
+  const task = UI.elements.hfTaskSelect.value;
+  updateProviderCredentials('huggingface', { task });
+  updateHfTaskHint(task);
+
+  // Update models based on task
+  const taskModels = HF_TASK_MODELS[task] || [];
+  UI.populateModelSelect(taskModels);
+
+  // Show/hide model selection
+  if (taskModels.length > 0) {
+    UI.elements.modelSelectionDiv.classList.remove('hidden');
+    UI.elements.advancedSettings.classList.remove('hidden');
+    UI.elements.startChatBtn.classList.remove('hidden');
+  }
+
+  // Save task-specific models
+  updateProviderCredentials('huggingface', { models: taskModels });
+});
 
 function handleProviderChange(provider) {
   // Save current provider's credentials before switching
