@@ -116,57 +116,57 @@ export async function* streamChatApi(state, newMsgContent, signal) {
       }
     }
   } else if (provider === 'ollama') {
-     try {
-       const base = credentials.endpoint ? credentials.endpoint.replace(/\/$/, '') : 'http://localhost:11434';
-       url = `${base}/api/chat`;
+    const base = credentials.endpoint ? credentials.endpoint.replace(/\/$/, '') : 'http://localhost:11434';
+    url = `${base}/api/chat`;
 
-       console.log('[Ollama] Endpoint:', url);
-       console.log('[Ollama] Model:', model);
-       console.log('[Ollama] Raw messages:', rawMessages);
+    // Convert messages to Ollama format
+    const ollamaMessages = rawMessages.map(msg => {
+      if (Array.isArray(msg.content)) {
+        let text = "";
+        msg.content.forEach(part => {
+          if (part.type === 'text') text += part.text;
+        });
+        return { role: msg.role, content: text };
+      }
+      return msg;
+    });
 
-       // Use /api/chat format like Sider AI
-       const ollamaMessages = rawMessages.map(msg => {
-         if (Array.isArray(msg.content)) {
-           let text = "";
-           msg.content.forEach(part => {
-             if (part.type === 'text') text += part.text;
-           });
-           return { role: msg.role, content: text };
-         }
-         return msg;
-       });
+    const body = { model, messages: ollamaMessages, stream: true };
+    if (systemPrompt) body.system = systemPrompt;
+    if (temperature !== undefined) body.options = { temperature };
 
-        console.log('[Ollama] Messages:', ollamaMessages);
+    // Direct fetch - CORS bypassed via declarativeNetRequest Origin header rewrite
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal
+    });
 
-        const body = { model, messages: ollamaMessages, stream: true };
-        if (systemPrompt) body.system = systemPrompt;
-        if (temperature !== undefined) body.options = { temperature };
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Ollama error ${response.status}: ${errorText}`);
+    }
 
-        console.log('[Ollama] Request body:', JSON.stringify(body, null, 2));
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
 
-        // Use service worker to bypass CORS (like Sider AI)
-        console.log('[Ollama] Streaming via service worker');
-        const chunks = await streamOllamaViaServiceWorker(url, body);
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
 
-        console.log('[Ollama] Response received, parsing chunks');
-
-        // Parse the streamed response
-        const allData = chunks.join('');
-        const lines = allData.split('\n');
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          try {
-            const json = JSON.parse(line);
-            console.log('[Ollama] Received chunk:', json);
-            if (json.message?.content) yield json.message.content;
-          } catch(e) {
-            console.error('[Ollama] JSON parse error:', e, 'Line:', line);
-          }
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split('\n');
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const json = JSON.parse(line);
+          if (json.message?.content) yield json.message.content;
+        } catch (e) {
+          // Ignore parse errors for incomplete chunks
         }
-     } catch (error) {
-       console.error('[Ollama] Fatal error:', error);
-       throw error;
-     }
+      }
+    }
   } else if (provider === 'bedrock') {
      // Bedrock Non-Streaming (Simple Implementation for now)
      // To support streaming with AWS SigV4 via REST without SDK requires complex event-stream binary parsing.
