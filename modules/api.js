@@ -2,6 +2,84 @@
 import { signRequest } from './aws.js';
 import { state, getCurrentProviderCredentials } from './state.js';
 
+// Ollama bridge iframe for CORS bypass
+let ollamaBridge = null;
+let bridgeReady = false;
+let messageId = 0;
+const pendingRequests = new Map();
+
+function initOllamaBridge() {
+  if (ollamaBridge) return;
+
+  // Create hidden iframe that loads bridge from localhost
+  ollamaBridge = document.createElement('iframe');
+  ollamaBridge.style.display = 'none';
+
+  // Load the bridge HTML from localhost (must be served by Ollama or local server)
+  const bridgeUrl = chrome.runtime.getURL('ollama-bridge.html');
+
+  // Create a blob URL instead to run in same origin
+  fetch(bridgeUrl)
+    .then(r => r.text())
+    .then(html => {
+      const blob = new Blob([html], { type: 'text/html' });
+      const blobUrl = URL.createObjectURL(blob);
+      ollamaBridge.src = blobUrl;
+      document.body.appendChild(ollamaBridge);
+    });
+
+  // Listen for messages from bridge
+  window.addEventListener('message', (event) => {
+    if (event.source !== ollamaBridge.contentWindow) return;
+
+    if (event.data.ready) {
+      bridgeReady = true;
+      return;
+    }
+
+    const { id, data, error } = event.data;
+    const pending = pendingRequests.get(id);
+    if (pending) {
+      pendingRequests.delete(id);
+      if (error) {
+        pending.reject(new Error(error));
+      } else {
+        pending.resolve({ data });
+      }
+    }
+  });
+}
+
+function sendViaOllamaBridge(url, body) {
+  return new Promise((resolve, reject) => {
+    if (!ollamaBridge) {
+      initOllamaBridge();
+    }
+
+    // Wait for bridge to be ready
+    const checkReady = () => {
+      if (bridgeReady && ollamaBridge.contentWindow) {
+        const id = messageId++;
+        pendingRequests.set(id, { resolve, reject });
+
+        ollamaBridge.contentWindow.postMessage({ id, url, body }, '*');
+
+        // Timeout after 30 seconds
+        setTimeout(() => {
+          if (pendingRequests.has(id)) {
+            pendingRequests.delete(id);
+            reject(new Error('Request timeout'));
+          }
+        }, 30000);
+      } else {
+        setTimeout(checkReady, 100);
+      }
+    };
+
+    checkReady();
+  });
+}
+
 export async function fetchModels(provider, credentials) {
   let url = '';
   let headers = {};

@@ -18,56 +18,58 @@ chrome.runtime.onInstalled.addListener(() => {
 // Run every time the background script wakes up (just in case)
 setupSidePanel();
 
+// Port-based streaming for Ollama requests
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name === 'ollama-stream') {
+    port.onMessage.addListener(async (msg) => {
+      const { url, body } = msg;
+
+      try {
+        console.log('[Background] Streaming request to:', url);
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(body)
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          port.postMessage({ error: `HTTP ${response.status}: ${errorText}` });
+          port.disconnect();
+          return;
+        }
+
+        // Stream the response chunks
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            port.postMessage({ done: true });
+            port.disconnect();
+            break;
+          }
+
+          const chunk = decoder.decode(value, { stream: true });
+          port.postMessage({ chunk });
+        }
+
+      } catch (error) {
+        console.error('[Background] Ollama request failed:', error);
+        port.postMessage({ error: error.message });
+        port.disconnect();
+      }
+    });
+  }
+});
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === "ping") {
     sendResponse({ response: "pong" });
-    return false;
   }
-
-  // Handle Ollama requests through service worker to bypass CORS
-  if (msg.action === "ollamaRequest") {
-    handleOllamaRequest(msg.url, msg.body)
-      .then(sendResponse)
-      .catch(error => sendResponse({ error: error.message }));
-    return true; // Keep message channel open for async response
-  }
-
   return false;
 });
-
-async function handleOllamaRequest(url, body) {
-  try {
-    console.log('[Background] Proxying request to:', url);
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Ollama error (${response.status}): ${errorText}`);
-    }
-
-    // For streaming responses, we need to read the full stream
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    const chunks = [];
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      const chunk = decoder.decode(value, { stream: true });
-      chunks.push(chunk);
-    }
-
-    return { success: true, data: chunks.join('') };
-
-  } catch (error) {
-    console.error('[Background] Ollama request failed:', error);
-    return { success: false, error: error.message };
-  }
-}
