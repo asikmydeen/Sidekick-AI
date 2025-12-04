@@ -62,6 +62,7 @@ chrome.runtime.onInstalled.addListener(() => {
 
 // Run every time the background script wakes up (just in case)
 setupSidePanel();
+setupOllamaHeaderRules();
 
 // Port-based streaming for Ollama requests
 chrome.runtime.onConnect.addListener((port) => {
