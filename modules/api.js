@@ -445,3 +445,45 @@ export async function speechToText(model, audioData, apiKey) {
   // Response format: { "text": "transcription" }
   return result.text || JSON.stringify(result);
 }
+
+/**
+ * Text-to-Video generation using HuggingFace Inference
+ * Returns a base64 data URL of the generated video
+ * Note: Video generation can take longer than image generation (30-120s)
+ */
+export async function textToVideo(model, prompt, apiKey, options = {}) {
+  const url = `https://router.huggingface.co/hf-inference/models/${model}`;
+
+  const body = {
+    inputs: prompt,
+    parameters: {
+      num_frames: options.numFrames || 16,
+      num_inference_steps: options.steps || 25,
+      guidance_scale: options.guidanceScale || 9,
+      negative_prompt: options.negativePrompt || 'low quality, blurry, distorted'
+    }
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Video generation failed (${response.status}): ${errorText}`);
+  }
+
+  // Response is binary video data (mp4)
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
