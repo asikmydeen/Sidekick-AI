@@ -304,6 +304,73 @@ select, input, textarea { width: 100%; padding: 8px; border: 1px solid var(--bor
 /* Inline code */
 .hint-text code { background: var(--code-bg); padding: 1px 4px; border-radius: 3px; font-size: 10px; }
 
+/* Generated Media (images, audio) */
+.generated-media-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.generated-image {
+  max-width: 100%;
+  max-height: 400px;
+  border-radius: 8px;
+  object-fit: contain;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.generated-image:hover {
+  transform: scale(1.02);
+}
+
+.generated-audio, .input-audio {
+  width: 100%;
+  max-width: 300px;
+  border-radius: 8px;
+}
+
+.media-btn {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  align-self: flex-start;
+}
+
+.media-btn:hover {
+  opacity: 0.9;
+}
+
+/* Image generation options */
+.image-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px;
+  background: var(--input-bg);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.image-options .form-group {
+  margin-bottom: 0;
+}
+
+.image-options label {
+  font-size: 10px;
+}
+
+.image-options input {
+  padding: 4px 6px;
+  font-size: 12px;
+}
+
 /* Input */
 .chat-input-wrapper { background: var(--header-bg); border-top: 1px solid var(--border-color); display: flex; flex-direction: column; }
 .prompt-chips { display: flex; gap: 8px; padding: 8px 10px 0; overflow-x: auto; scrollbar-width: none; }
