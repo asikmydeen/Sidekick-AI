@@ -504,6 +504,11 @@ function switchToChat() {
 
   const session = getCurrentSession();
   UI.renderChat(session ? session.messages : [], state.model);
+
+  // Show expand button in sidebar mode only
+  if (UI.elements.expandBtn && !UI.isFullPageMode()) {
+    UI.elements.expandBtn.classList.remove('hidden');
+  }
 }
 
 async function sendMessage() {
