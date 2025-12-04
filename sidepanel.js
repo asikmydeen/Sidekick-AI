@@ -307,6 +307,7 @@ UI.elements.fileInput.addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if (!file) return;
 
+  // Handle image files
   if (file.type.startsWith('image/')) {
     const reader = new FileReader();
     reader.onload = (evt) => {
@@ -322,6 +323,23 @@ UI.elements.fileInput.addEventListener('change', async (e) => {
     return;
   }
 
+  // Handle audio files (for speech-to-text)
+  if (file.type.startsWith('audio/')) {
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const base64 = evt.target.result;
+      pendingAttachments.push({ type: 'audio', base64: base64, name: file.name });
+      UI.renderAttachments(pendingAttachments, (index) => {
+        pendingAttachments.splice(index, 1);
+        UI.renderAttachments(pendingAttachments, () => {});
+      });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+    return;
+  }
+
+  // Handle text files
   try {
     const text = await readFileAsText(file);
     if (/[\x00-\x08\x0E-\x1F]/.test(text)) {
@@ -331,7 +349,7 @@ UI.elements.fileInput.addEventListener('change', async (e) => {
     UI.elements.messageInput.value += context;
     UI.autoResizeInput();
   } catch (err) {
-    alert('Failed to read file. Please upload images or text files.');
+    alert('Failed to read file. Please upload images, audio, or text files.');
     console.error(err);
   }
   e.target.value = '';
