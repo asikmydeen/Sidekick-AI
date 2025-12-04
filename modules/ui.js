@@ -135,6 +135,21 @@ export function populateModelSelect(models) {
   });
 }
 
+export function addModelToSelect(model) {
+  // Check if model already exists
+  const existing = Array.from(elements.modelSelect.options).find(opt => opt.value === model);
+  if (existing) {
+    elements.modelSelect.value = model;
+    return;
+  }
+
+  const option = document.createElement('option');
+  option.value = model;
+  option.textContent = model;
+  elements.modelSelect.appendChild(option);
+  elements.modelSelect.value = model;
+}
+
 export function renderChips(quickPromptsText, onChipClick) {
   elements.promptChipsContainer.innerHTML = '';
   const lines = quickPromptsText.split('\n');
