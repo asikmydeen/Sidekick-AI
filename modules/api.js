@@ -351,7 +351,7 @@ export async function textToImage(model, prompt, apiKey, options = {}) {
  * Returns a text description of the image
  */
 export async function imageToText(model, imageData, apiKey) {
-  const url = `https://router.huggingface.co/hf-inference/models/${model}`;
+  const url = `https://api-inference.huggingface.co/models/${model}`;
 
   // If imageData is a base64 data URL, extract just the base64 part
   let binaryData;
