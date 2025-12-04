@@ -193,6 +193,8 @@ export async function* streamChatApi(state, newMsgContent, signal) {
      const text = json.output?.message?.content?.[0]?.text || '';
      yield text;
   } else if (provider === 'huggingface') {
+     // Note: Hugging Face Inference API endpoint. The 410 error occurs when models are not deployed
+     // or available on the serverless inference API. Use models that are actively deployed.
      url = `https://api-inference.huggingface.co/models/${model}`;
      const fullPrompt = rawMessages.map(m => {
           const txt = Array.isArray(m.content) ? m.content.find(c=>c.type==='text')?.text : m.content;
