@@ -660,6 +660,15 @@ export function renderAttachments(attachments, onRemove) {
 function parseMarkdown(text) {
   if (!text) return '';
   let safeText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  // Store think blocks for later restoration
+  const thinkBlocks = [];
+  safeText = safeText.replace(/&lt;think&gt;([\s\S]*?)&lt;\/think&gt;/g, (_match, content) => {
+    thinkBlocks.push(content.trim());
+    return `__THINKBLOCK_${thinkBlocks.length - 1}__`;
+  });
+
+  // Store code blocks for later restoration
   const codeBlocks = [];
   safeText = safeText.replace(/```([\s\S]*?)```/g, (_match, code) => {
     codeBlocks.push(code);
@@ -676,8 +685,26 @@ function parseMarkdown(text) {
   safeText = safeText.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
   safeText = safeText.replace(/\n/g, '<br>');
 
+  // Restore code blocks
   safeText = safeText.replace(/__CODEBLOCK_(\d+)__/g, (_match, index) => {
     return `<div class="code-wrapper"><button class="copy-btn">Copy</button><pre><code>${codeBlocks[index]}</code></pre></div>`;
   });
+
+  // Restore think blocks with collapsible UI
+  safeText = safeText.replace(/__THINKBLOCK_(\d+)__/g, (_match, index) => {
+    const blockId = `think-${Date.now()}-${index}`;
+    const content = thinkBlocks[index].replace(/&lt;br&gt;/g, '<br>').replace(/<br>/g, '<br>');
+    return `<div class="think-block" id="${blockId}">
+      <div class="think-header" onclick="this.parentElement.classList.toggle('expanded')">
+        <span class="think-icon">💭</span>
+        <span class="think-label">Thinking Process</span>
+        <span class="think-toggle">▼</span>
+      </div>
+      <div class="think-content">
+        <div class="think-content-inner">${content}</div>
+      </div>
+    </div>`;
+  });
+
   return safeText;
 }
