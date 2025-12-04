@@ -87,16 +87,18 @@ export async function loadState() {
     // Migration: Initialize providerCredentials if missing
     if (!stored.chatState.providerCredentials) {
       stored.chatState.providerCredentials = {
-        openai: { apiKey: '' },
-        openrouter: { apiKey: '' },
-        anthropic: { apiKey: '' },
-        huggingface: { apiKey: '' },
-        ollama: { endpoint: 'http://localhost:11434' },
+        openai: { apiKey: '', selectedModel: '', models: [] },
+        openrouter: { apiKey: '', selectedModel: '', models: [] },
+        anthropic: { apiKey: '', selectedModel: '', models: [] },
+        huggingface: { apiKey: '', selectedModel: '', models: [] },
+        ollama: { endpoint: 'http://localhost:11434', selectedModel: '', models: [] },
         bedrock: {
           accessKey: '',
           secretKey: '',
           sessionToken: '',
-          region: 'us-east-1'
+          region: 'us-east-1',
+          selectedModel: '',
+          models: []
         }
       };
 
@@ -134,6 +136,16 @@ export async function loadState() {
     if (!state.providerCredentials.bedrock.region) {
       state.providerCredentials.bedrock.region = 'us-east-1';
     }
+
+    // Ensure models and selectedModel fields exist for all providers
+    Object.keys(state.providerCredentials).forEach(provider => {
+      if (!state.providerCredentials[provider].models) {
+        state.providerCredentials[provider].models = [];
+      }
+      if (!state.providerCredentials[provider].selectedModel) {
+        state.providerCredentials[provider].selectedModel = '';
+      }
+    });
 
     // Migration logic for old state
     if (stored.chatState.messages && !stored.chatState.sessions) {

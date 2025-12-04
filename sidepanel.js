@@ -109,6 +109,18 @@ function loadProviderCredentials(provider) {
       if (credentials.region) UI.elements.awsRegion.value = credentials.region;
       break;
   }
+
+  // Restore models and selected model
+  if (credentials.models && credentials.models.length > 0) {
+    UI.populateModelSelect(credentials.models);
+    UI.elements.modelSelectionDiv.classList.remove('hidden');
+    UI.elements.advancedSettings.classList.remove('hidden');
+    UI.elements.startChatBtn.classList.remove('hidden');
+
+    if (credentials.selectedModel) {
+      UI.elements.modelSelect.value = credentials.selectedModel;
+    }
+  }
 }
 
 function updateCredentialFieldsVisibility(provider) {
