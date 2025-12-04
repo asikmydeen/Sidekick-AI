@@ -19,7 +19,8 @@ export async function fetchModels(provider, credentials) {
       transform = (data) => data.data.map(m => m.id).sort();
       break;
     case 'huggingface':
-      url = 'https://huggingface.co/api/models?pipeline_tag=text-generation&sort=downloads&direction=-1&limit=50';
+      // Fetch conversational/chat models that work with the inference API
+      url = 'https://huggingface.co/api/models?pipeline_tag=text-generation&inference=warm&sort=downloads&direction=-1&limit=50';
       headers = { 'Authorization': `Bearer ${credentials.apiKey}` };
       transform = (data) => data.map(m => m.id);
       break;
