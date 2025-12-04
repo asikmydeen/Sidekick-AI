@@ -12,20 +12,35 @@ function createId() {
 
 export let state = {
   provider: '',
-  apiKey: '',
-  endpoint: 'http://localhost:11434',
-  awsAccessKey: '',
-  awsSecretKey: '',
-  awsSessionToken: '',
-  awsRegion: 'us-east-1',
   model: '',
+  apiKey: '',  // Keep for migration
+  endpoint: 'http://localhost:11434',  // Keep for migration
+  awsAccessKey: '',  // Keep for migration
+  awsSecretKey: '',  // Keep for migration
+  awsSessionToken: '',  // Keep for migration
+  awsRegion: 'us-east-1',  // Keep for migration
   systemPrompt: '',
   temperature: 0.7,
   quickPrompts: DEFAULT_QUICK_PROMPTS,
   theme: 'light',
   autoRead: false,
   currentSessionId: null,
-  sessions: []
+  sessions: [],
+
+  // NEW: Provider-specific credentials
+  providerCredentials: {
+    openai: { apiKey: '' },
+    openrouter: { apiKey: '' },
+    anthropic: { apiKey: '' },
+    huggingface: { apiKey: '' },
+    ollama: { endpoint: 'http://localhost:11434' },
+    bedrock: {
+      accessKey: '',
+      secretKey: '',
+      sessionToken: '',
+      region: 'us-east-1'
+    }
+  }
 };
 
 export async function loadState() {
