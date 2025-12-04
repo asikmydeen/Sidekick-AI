@@ -460,22 +460,36 @@ body.full-page-mode .header h1 {
 
 body.full-page-mode .chat-view {
   display: grid;
-  grid-template-columns: 1fr minmax(700px, 900px) 1fr;
+  grid-template-columns: 1fr minmax(600px, 850px) 1fr;
+  grid-template-rows: 1fr auto;
   height: calc(100vh - 60px);
+  background: var(--bg-color);
+}
+
+body.full-page-mode .chat-spacer {
+  display: block;
+}
+
+.chat-spacer {
+  display: none;
 }
 
 body.full-page-mode .chat-history {
   grid-column: 2;
-  max-height: calc(100vh - 180px);
-  padding: 30px 20px;
+  grid-row: 1;
+  max-height: calc(100vh - 200px);
+  padding: 30px 10px;
   gap: 16px;
+  overflow-y: auto;
 }
 
 body.full-page-mode .chat-input-wrapper {
   grid-column: 2;
+  grid-row: 2;
   border-radius: 16px 16px 0 0;
-  margin: 0;
+  margin: 0 0 20px 0;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+  background: var(--header-bg);
 }
 
 body.full-page-mode .message {
