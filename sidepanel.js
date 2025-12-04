@@ -139,6 +139,24 @@ function updateCredentialFieldsVisibility(provider) {
   }
 }
 
+// Providers that support manual model entry (don't have reliable model listing)
+const MANUAL_MODEL_PROVIDERS = ['huggingface', 'anthropic'];
+
+function updateManualModelVisibility(provider) {
+  if (MANUAL_MODEL_PROVIDERS.includes(provider)) {
+    UI.elements.manualModelGroup.classList.remove('hidden');
+
+    // Set provider-specific hints
+    if (provider === 'huggingface') {
+      UI.elements.modelHint.innerHTML = 'Format: <code>model-name</code> or <code>model-name:provider</code> (e.g., <code>deepseek-ai/DeepSeek-V3:novita</code>)';
+    } else if (provider === 'anthropic') {
+      UI.elements.modelHint.innerHTML = 'e.g., <code>claude-sonnet-4-20250514</code>, <code>claude-3-5-haiku-20241022</code>';
+    }
+  } else {
+    UI.elements.manualModelGroup.classList.add('hidden');
+  }
+}
+
 function handleProviderChange(provider) {
   // Save current provider's credentials before switching
   saveCurrentProviderCredentials();
@@ -151,6 +169,7 @@ function handleProviderChange(provider) {
 
   // Update UI visibility
   updateCredentialFieldsVisibility(provider);
+  updateManualModelVisibility(provider);
 
   // Reset model selection
   UI.elements.modelSelectionDiv.classList.add('hidden');
