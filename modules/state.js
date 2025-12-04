@@ -32,7 +32,7 @@ export let state = {
     openai: { apiKey: '', selectedModel: '', models: [] },
     openrouter: { apiKey: '', selectedModel: '', models: [] },
     anthropic: { apiKey: '', selectedModel: '', models: [] },
-    huggingface: { apiKey: '', selectedModel: '', models: [] },
+    huggingface: { apiKey: '', selectedModel: '', models: [], task: 'chat', taskModels: {} },
     ollama: { endpoint: 'http://localhost:11434', selectedModel: '', models: [] },
     bedrock: {
       accessKey: '',
@@ -43,6 +43,42 @@ export let state = {
       models: []
     }
   }
+};
+
+// Default models for each HuggingFace task
+export const HF_TASK_MODELS = {
+  'chat': [
+    'meta-llama/Llama-3.2-3B-Instruct',
+    'meta-llama/Llama-3.1-8B-Instruct',
+    'Qwen/Qwen2.5-72B-Instruct',
+    'mistralai/Mistral-7B-Instruct-v0.3',
+    'deepseek-ai/DeepSeek-R1-Distill-Qwen-32B'
+  ],
+  'text-to-image': [
+    'black-forest-labs/FLUX.1-dev',
+    'black-forest-labs/FLUX.1-schnell',
+    'stabilityai/stable-diffusion-xl-base-1.0',
+    'stabilityai/stable-diffusion-3-medium',
+    'ByteDance/SDXL-Lightning'
+  ],
+  'image-to-text': [
+    'Salesforce/blip-image-captioning-large',
+    'Salesforce/blip-image-captioning-base',
+    'nlpconnect/vit-gpt2-image-captioning',
+    'microsoft/git-base'
+  ],
+  'text-to-speech': [
+    'facebook/mms-tts-eng',
+    'espnet/kan-bayashi_ljspeech_vits',
+    'microsoft/speecht5_tts',
+    'suno/bark-small'
+  ],
+  'speech-to-text': [
+    'openai/whisper-large-v3',
+    'openai/whisper-medium',
+    'openai/whisper-small',
+    'facebook/wav2vec2-large-960h-lv60-self'
+  ]
 };
 
 /**

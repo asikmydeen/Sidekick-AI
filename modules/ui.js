@@ -20,6 +20,10 @@ export const elements = {
   awsSessionToken: document.getElementById('awsSessionToken'),
   awsRegion: document.getElementById('awsRegion'),
 
+  hfTaskGroup: document.getElementById('hfTaskGroup'),
+  hfTaskSelect: document.getElementById('hfTask'),
+  hfTaskHint: document.getElementById('hfTaskHint'),
+
   fetchModelsBtn: document.getElementById('fetchModelsBtn'),
   fetchStatus: document.getElementById('fetchStatus'),
   modelSelect: document.getElementById('model'),
