@@ -1,6 +1,6 @@
 // modules/api.js
 import { signRequest } from './aws.js';
-import { state, getCurrentProviderCredentials } from './state.js';
+import { getCurrentProviderCredentials } from './state.js';
 
 export async function fetchModels(provider, credentials) {
   let url = '';
