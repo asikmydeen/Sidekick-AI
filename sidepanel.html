@@ -53,6 +53,19 @@
         <input type="password" id="apiKey" placeholder="sk-..." />
       </div>
 
+      <!-- HuggingFace Task Selector -->
+      <div class="form-group hidden" id="hfTaskGroup">
+        <label for="hfTask">Task Type</label>
+        <select id="hfTask">
+          <option value="chat">💬 Chat Completion</option>
+          <option value="text-to-image">🎨 Text to Image</option>
+          <option value="image-to-text">📝 Image to Text</option>
+          <option value="text-to-speech">🔊 Text to Speech</option>
+          <option value="speech-to-text">🎤 Speech to Text</option>
+        </select>
+        <small class="hint-text" id="hfTaskHint">Select a task to see recommended models</small>
+      </div>
+
       <div class="form-group hidden" id="endpointGroup">
         <label for="endpoint">Ollama URL</label>
         <input type="text" id="endpoint" value="http://localhost:11434" placeholder="http://localhost:11434" />
