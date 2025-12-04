@@ -210,6 +210,12 @@ UI.elements.hfTaskSelect.addEventListener('change', () => {
   updateProviderCredentials('huggingface', { models: taskModels });
 });
 
+// Handle HuggingFace inference provider change
+UI.elements.hfProviderSelect.addEventListener('change', () => {
+  const hfProvider = UI.elements.hfProviderSelect.value;
+  updateProviderCredentials('huggingface', { hfProvider });
+});
+
 function handleProviderChange(provider) {
   // Save current provider's credentials before switching
   saveCurrentProviderCredentials();
