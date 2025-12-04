@@ -131,6 +131,7 @@ function updateCredentialFieldsVisibility(provider) {
   UI.elements.endpointGroup.classList.add('hidden');
   UI.elements.awsGroup.classList.add('hidden');
   UI.elements.hfTaskGroup.classList.add('hidden');
+  UI.elements.hfProviderGroup.classList.add('hidden');
 
   // Show relevant credential group
   if (provider === 'ollama') {
@@ -141,13 +142,17 @@ function updateCredentialFieldsVisibility(provider) {
     UI.elements.apiKeyGroup.classList.remove('hidden');
   }
 
-  // Show HuggingFace task selector
+  // Show HuggingFace task selector and provider selector
   if (provider === 'huggingface') {
     UI.elements.hfTaskGroup.classList.remove('hidden');
-    // Load saved task
+    UI.elements.hfProviderGroup.classList.remove('hidden');
+    // Load saved task and provider
     const credentials = getProviderCredentials(provider);
     if (credentials?.task) {
       UI.elements.hfTaskSelect.value = credentials.task;
+    }
+    if (credentials?.hfProvider) {
+      UI.elements.hfProviderSelect.value = credentials.hfProvider;
     }
   }
 }
