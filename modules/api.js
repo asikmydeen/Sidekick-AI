@@ -77,7 +77,7 @@ export async function* streamChatApi(state, newMsgContent, signal) {
   console.log('[DEBUG] Credentials:', credentials);
 
   let url = '';
-  let headers = {};
+  let headers = { 'Content-Type': 'application/json' };
 
   // Prepare history
   const history = [];
@@ -117,37 +117,30 @@ export async function* streamChatApi(state, newMsgContent, signal) {
     }
   } else if (provider === 'ollama') {
      try {
-       const base = credentials.endpoint ? credentials.endpoint.replace(/\/$/, '') : 'http://127.0.0.1:11434';
-       url = `${base}/api/generate`;
+       const base = credentials.endpoint ? credentials.endpoint.replace(/\/$/, '') : 'http://localhost:11434';
+       url = `${base}/api/chat`;
 
        console.log('[Ollama] Endpoint:', url);
        console.log('[Ollama] Model:', model);
        console.log('[Ollama] Raw messages:', rawMessages);
 
-       // Convert messages to a single prompt string for /api/generate
-       let prompt = '';
-       if (systemPrompt) {
-         prompt += `System: ${systemPrompt}\n\n`;
-       }
-
-       rawMessages.forEach(msg => {
-         const role = msg.role === 'user' ? 'User' : 'Assistant';
-         let content = '';
+       // Use /api/chat format like Sider AI
+       const ollamaMessages = rawMessages.map(msg => {
          if (Array.isArray(msg.content)) {
+           let text = "";
            msg.content.forEach(part => {
-             if (part.type === 'text') content += part.text;
+             if (part.type === 'text') text += part.text;
            });
-         } else {
-           content = msg.content;
+           return { role: msg.role, content: text };
          }
-         prompt += `${role}: ${content}\n`;
+         return msg;
        });
 
-       prompt += 'Assistant: ';
+        console.log('[Ollama] Messages:', ollamaMessages);
 
-        console.log('[Ollama] Prompt:', prompt);
-
-        const body = { model, prompt, stream: true, options: { temperature } };
+        const body = { model, messages: ollamaMessages, stream: true };
+        if (systemPrompt) body.system = systemPrompt;
+        if (temperature !== undefined) body.options = { temperature };
 
         console.log('[Ollama] Request body:', JSON.stringify(body, null, 2));
 
@@ -179,7 +172,7 @@ export async function* streamChatApi(state, newMsgContent, signal) {
              try {
                const json = JSON.parse(line);
                console.log('[Ollama] Received chunk:', json);
-               if (json.response) yield json.response;
+               if (json.message?.content) yield json.message.content;
              } catch(e) {
                console.error('[Ollama] JSON parse error:', e, 'Line:', line);
              }
