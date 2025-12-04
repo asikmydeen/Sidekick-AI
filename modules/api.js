@@ -19,11 +19,24 @@ export async function fetchModels(provider, credentials) {
       transform = (data) => data.data.map(m => m.id).sort();
       break;
     case 'huggingface':
-      // Fetch conversational/chat models that work with the inference API
-      url = 'https://huggingface.co/api/models?pipeline_tag=text-generation&inference=warm&sort=downloads&direction=-1&limit=50';
-      headers = { 'Authorization': `Bearer ${credentials.apiKey}` };
-      transform = (data) => data.map(m => m.id);
-      break;
+      // Return curated list of models known to work with HF Serverless Inference API
+      // Not all models on HF Hub are deployed - only specific ones are available
+      return [
+        'meta-llama/Llama-3.2-3B-Instruct',
+        'meta-llama/Llama-3.2-1B-Instruct',
+        'meta-llama/Llama-3.1-8B-Instruct',
+        'mistralai/Mistral-7B-Instruct-v0.3',
+        'mistralai/Mistral-Nemo-Instruct-2407',
+        'microsoft/Phi-3-mini-4k-instruct',
+        'HuggingFaceH4/zephyr-7b-beta',
+        'Qwen/Qwen2.5-72B-Instruct',
+        'Qwen/Qwen2.5-7B-Instruct',
+        'Qwen/Qwen2.5-3B-Instruct',
+        'google/gemma-2-9b-it',
+        'google/gemma-2-2b-it',
+        'NousResearch/Hermes-3-Llama-3.1-8B',
+        'deepseek-ai/DeepSeek-R1-Distill-Qwen-32B'
+      ];
     case 'anthropic':
       throw new Error('Anthropic API does not support listing models automatically.');
     case 'ollama':
