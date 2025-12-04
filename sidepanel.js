@@ -339,6 +339,45 @@ UI.elements.modelSelect.addEventListener('change', () => {
   }
 });
 
+// Manual model entry - Add button
+UI.elements.saveModelBtn.addEventListener('click', () => {
+  const modelName = UI.elements.manualModelInput.value.trim();
+  if (!modelName) {
+    UI.showStatus('Please enter a model name.', 'error');
+    return;
+  }
+
+  const provider = state.provider;
+
+  // Add to dropdown and select it
+  UI.addModelToSelect(modelName);
+
+  // Save to provider credentials
+  const credentials = getProviderCredentials(provider);
+  const models = credentials.models || [];
+  if (!models.includes(modelName)) {
+    models.push(modelName);
+  }
+  updateProviderCredentials(provider, { models, selectedModel: modelName });
+
+  // Show model selection and advanced settings
+  UI.elements.modelSelectionDiv.classList.remove('hidden');
+  UI.elements.advancedSettings.classList.remove('hidden');
+  UI.elements.startChatBtn.classList.remove('hidden');
+
+  // Clear input
+  UI.elements.manualModelInput.value = '';
+  UI.showStatus(`Model "${modelName}" added.`, 'success');
+});
+
+// Allow Enter key in manual model input
+UI.elements.manualModelInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    UI.elements.saveModelBtn.click();
+  }
+});
+
 UI.elements.temperatureInput.addEventListener('input', (e) => UI.elements.tempValueLabel.textContent = e.target.value);
 UI.elements.messageInput.addEventListener('input', UI.autoResizeInput);
 UI.elements.messageInput.addEventListener('keypress', (e) => {
