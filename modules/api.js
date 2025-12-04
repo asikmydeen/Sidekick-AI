@@ -112,32 +112,36 @@ export async function* streamChatApi(state, newMsgContent, signal) {
   } else if (provider === 'ollama') {
      try {
        const base = credentials.endpoint ? credentials.endpoint.replace(/\/$/, '') : 'http://127.0.0.1:11434';
-       url = `${base}/api/chat`;
+       url = `${base}/api/generate`;
 
        console.log('[Ollama] Endpoint:', url);
        console.log('[Ollama] Model:', model);
        console.log('[Ollama] Raw messages:', rawMessages);
 
-       const ollamaMessages = rawMessages.map(msg => {
-          if (Array.isArray(msg.content)) {
-            let text = "";
-            let images = [];
-            msg.content.forEach(part => {
-              if (part.type === 'text') text += part.text;
-              if (part.type === 'image_url') {
-                 const b64 = part.image_url.url.split(',')[1];
-                 if (b64) images.push(b64);
-              }
-            });
-            return { role: msg.role, content: text, images: images.length ? images : undefined };
-          }
-          return msg;
-        });
+       // Convert messages to a single prompt string for /api/generate
+       let prompt = '';
+       if (systemPrompt) {
+         prompt += `System: ${systemPrompt}\n\n`;
+       }
 
-        console.log('[Ollama] Formatted messages:', ollamaMessages);
+       rawMessages.forEach(msg => {
+         const role = msg.role === 'user' ? 'User' : 'Assistant';
+         let content = '';
+         if (Array.isArray(msg.content)) {
+           msg.content.forEach(part => {
+             if (part.type === 'text') content += part.text;
+           });
+         } else {
+           content = msg.content;
+         }
+         prompt += `${role}: ${content}\n`;
+       });
 
-        const body = { model, messages: ollamaMessages, stream: true, options: { temperature } };
-        if (systemPrompt) body.system = systemPrompt;
+       prompt += 'Assistant: ';
+
+        console.log('[Ollama] Prompt:', prompt);
+
+        const body = { model, prompt, stream: true, options: { temperature } };
 
         console.log('[Ollama] Request body:', JSON.stringify(body, null, 2));
 
@@ -145,9 +149,7 @@ export async function* streamChatApi(state, newMsgContent, signal) {
           method: 'POST',
           headers,
           body: JSON.stringify(body),
-          signal,
-          mode: 'cors',
-          credentials: 'omit'
+          signal
         });
 
         console.log('[Ollama] Response status:', response.status, response.statusText);
@@ -164,14 +166,14 @@ export async function* streamChatApi(state, newMsgContent, signal) {
           const { done, value } = await reader.read();
           if (done) break;
           const chunk = decoder.decode(value, { stream: true });
-          // Ollama sends JSON objects directly (sometimes multiple per chunk)
+          // Ollama /api/generate sends JSON objects
           const lines = chunk.split('\n');
           for (const line of lines) {
              if (!line.trim()) continue;
              try {
                const json = JSON.parse(line);
                console.log('[Ollama] Received chunk:', json);
-               if (json.message?.content) yield json.message.content;
+               if (json.response) yield json.response;
              } catch(e) {
                console.error('[Ollama] JSON parse error:', e, 'Line:', line);
              }
