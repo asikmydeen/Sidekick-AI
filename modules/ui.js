@@ -49,6 +49,7 @@ export const elements = {
 
   exportBtn: document.getElementById('exportBtn'),
   expandBtn: document.getElementById('expandBtn'),
+  collapseBtn: document.getElementById('collapseBtn'),
   themeBtn: document.getElementById('themeBtn'),
   chatHistory: document.getElementById('chatHistory'),
   messageInput: document.getElementById('messageInput'),
