@@ -213,20 +213,66 @@ export async function* streamChatApi(state, newMsgContent, signal) {
      const text = json.output?.message?.content?.[0]?.text || '';
      yield text;
   } else if (provider === 'huggingface') {
-     // Note: Hugging Face Inference API endpoint. The 410 error occurs when models are not deployed
-     // or available on the serverless inference API. Use models that are actively deployed.
-     url = `https://api-inference.huggingface.co/models/${model}`;
-     const fullPrompt = rawMessages.map(m => {
-          const txt = Array.isArray(m.content) ? m.content.find(c=>c.type==='text')?.text : m.content;
-          return `${m.role}: ${txt}`;
-     }).join('\n');
-     const hfBody = { inputs: fullPrompt, parameters: { max_new_tokens: 500, return_full_text: false, temperature } };
-     const hfRes = await fetch(url, { method: 'POST', headers: { 'Authorization': `Bearer ${credentials.apiKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(hfBody), signal });
-     if (!hfRes.ok) {
-       const errorText = await hfRes.text();
-       throw new Error(`Hugging Face API error (${hfRes.status}): ${errorText}`);
-     }
-     const hfData = await hfRes.json();
-     yield Array.isArray(hfData) ? hfData[0].generated_text : JSON.stringify(hfData);
+    // Hugging Face Inference API - uses OpenAI-compatible chat completions format
+    // New endpoint: router.huggingface.co (api-inference.huggingface.co is deprecated)
+    url = `https://router.huggingface.co/hf-inference/models/${model}/v1/chat/completions`;
+
+    // Convert messages to OpenAI format
+    const hfMessages = rawMessages.map(m => {
+      const txt = Array.isArray(m.content) ? m.content.find(c => c.type === 'text')?.text : m.content;
+      return { role: m.role, content: txt };
+    });
+
+    // Add system prompt if provided
+    if (systemPrompt) {
+      hfMessages.unshift({ role: 'system', content: systemPrompt });
+    }
+
+    const hfBody = {
+      model,
+      messages: hfMessages,
+      max_tokens: 2048,
+      temperature,
+      stream: true
+    };
+
+    const hfRes = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${credentials.apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(hfBody),
+      signal
+    });
+
+    if (!hfRes.ok) {
+      const errorText = await hfRes.text();
+      throw new Error(`Hugging Face API error (${hfRes.status}): ${errorText}`);
+    }
+
+    // Stream the response (OpenAI-compatible SSE format)
+    const reader = hfRes.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split('\n');
+
+      for (const line of lines) {
+        if (line.startsWith('data: ') && !line.includes('[DONE]')) {
+          try {
+            const json = JSON.parse(line.replace('data: ', ''));
+            const content = json.choices?.[0]?.delta?.content || '';
+            if (content) yield content;
+          } catch (e) {
+            // Ignore parse errors for incomplete chunks
+          }
+        }
+      }
+    }
   }
 }
