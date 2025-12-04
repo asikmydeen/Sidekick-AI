@@ -470,11 +470,6 @@ body.full-page-mode #chatSection {
   height: calc(100vh - 56px);
 }
 
-/* Hide the spacers in sidebar mode */
-.chat-spacer {
-  display: none;
-}
-
 /* Chat history - centered with max width */
 body.full-page-mode .chat-history {
   flex: 1;
