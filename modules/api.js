@@ -357,28 +357,19 @@ export async function imageToText(model, imageData, apiKey) {
 }
 
 /**
- * Text-to-Speech using HuggingFace Inference
+ * Text-to-Speech using HuggingFace Inference Client
  * Returns a base64 data URL of the generated audio
  */
 export async function textToSpeech(model, text, apiKey) {
-  const url = `https://api-inference.huggingface.co/models/${model}`;
+  const client = new InferenceClient(apiKey);
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ inputs: text })
+  const blob = await client.textToSpeech({
+    provider: 'auto',
+    model: model,
+    inputs: text
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Speech generation failed (${response.status}): ${errorText}`);
-  }
-
-  // Response is binary audio data
-  const blob = await response.blob();
+  // Convert Blob to base64 data URL
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onloadend = () => resolve(reader.result);
@@ -388,51 +379,45 @@ export async function textToSpeech(model, text, apiKey) {
 }
 
 /**
- * Speech-to-Text (ASR) using HuggingFace Inference
+ * Speech-to-Text (ASR) using HuggingFace Inference Client
  * Returns transcribed text
  */
 export async function speechToText(model, audioData, apiKey) {
-  const url = `https://api-inference.huggingface.co/models/${model}`;
+  const client = new InferenceClient(apiKey);
 
-  // If audioData is a base64 data URL, extract the binary
-  let binaryData;
+  // Convert base64 data URL to Blob if needed
+  let audioBlob;
   if (typeof audioData === 'string' && audioData.startsWith('data:')) {
     const base64 = audioData.split(',')[1];
-    binaryData = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+    const mimeType = audioData.split(';')[0].split(':')[1] || 'audio/flac';
+    const binaryData = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+    audioBlob = new Blob([binaryData], { type: mimeType });
   } else if (audioData instanceof Blob) {
-    binaryData = await audioData.arrayBuffer();
+    audioBlob = audioData;
   } else {
-    binaryData = audioData;
+    audioBlob = new Blob([audioData], { type: 'audio/flac' });
   }
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'audio/flac'  // Most common format for Whisper
-    },
-    body: binaryData
+  const result = await client.automaticSpeechRecognition({
+    provider: 'auto',
+    model: model,
+    data: audioBlob
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Speech recognition failed (${response.status}): ${errorText}`);
-  }
-
-  const result = await response.json();
-  // Response format: { "text": "transcription" }
   return result.text || JSON.stringify(result);
 }
 
 /**
- * Text-to-Video generation using HuggingFace Inference
+ * Text-to-Video generation using HuggingFace Inference Client
  * Returns a base64 data URL of the generated video
  * Note: Video generation can take longer than image generation (30-120s)
  */
 export async function textToVideo(model, prompt, apiKey, options = {}) {
-  const url = `https://api-inference.huggingface.co/models/${model}`;
+  const client = new InferenceClient(apiKey);
 
-  const body = {
+  const blob = await client.textToVideo({
+    provider: 'auto',
+    model: model,
     inputs: prompt,
     parameters: {
       num_frames: options.numFrames || 16,
@@ -440,24 +425,9 @@ export async function textToVideo(model, prompt, apiKey, options = {}) {
       guidance_scale: options.guidanceScale || 9,
       negative_prompt: options.negativePrompt || 'low quality, blurry, distorted'
     }
-  };
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(body)
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Video generation failed (${response.status}): ${errorText}`);
-  }
-
-  // Response is binary video data (mp4)
-  const blob = await response.blob();
+  // Convert Blob to base64 data URL
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onloadend = () => resolve(reader.result);
