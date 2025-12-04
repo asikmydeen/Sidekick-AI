@@ -3,7 +3,7 @@ import { initMock } from './modules/mock.js';
 import {
   state, loadState, updateState,
   createNewSession, deleteSession, switchSession, getCurrentSession, updateCurrentSession, deleteAllSessions,
-  getProviderCredentials, updateProviderCredentials, getCurrentProviderCredentials,
+  getProviderCredentials, updateProviderCredentials,
   HF_TASK_MODELS
 } from './modules/state.js';
 import * as UI from './modules/ui.js';
