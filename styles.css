@@ -576,6 +576,17 @@ body.full-page-mode .config-group textarea {
   padding: 12px 14px;
 }
 
+/* Full-page sidebar */
+body.full-page-mode .sidebar {
+  max-width: 350px;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+}
+
+body.full-page-mode .session-item {
+  padding: 14px 16px;
+  font-size: 14px;
+}
+
 /* Media Gallery */
 .media-gallery {
   padding: 20px;
