@@ -212,6 +212,45 @@ export function appendMessageToDOM(role, content, id = null, isLoading = false) 
            img.src = part.image_url.url;
            img.className = 'chat-image';
            div.appendChild(img);
+        } else if (part.type === 'generated_image') {
+           // Generated image from text-to-image
+           const container = document.createElement('div');
+           container.className = 'generated-media-container';
+           const img = document.createElement('img');
+           img.src = part.url;
+           img.className = 'generated-image';
+           img.alt = part.prompt || 'Generated image';
+           container.appendChild(img);
+           // Add download button
+           const downloadBtn = document.createElement('button');
+           downloadBtn.className = 'media-btn';
+           downloadBtn.textContent = '⬇️ Download';
+           downloadBtn.onclick = () => downloadMedia(part.url, 'generated-image.png');
+           container.appendChild(downloadBtn);
+           div.appendChild(container);
+        } else if (part.type === 'generated_audio') {
+           // Generated audio from text-to-speech
+           const container = document.createElement('div');
+           container.className = 'generated-media-container';
+           const audio = document.createElement('audio');
+           audio.src = part.url;
+           audio.controls = true;
+           audio.className = 'generated-audio';
+           container.appendChild(audio);
+           // Add download button
+           const downloadBtn = document.createElement('button');
+           downloadBtn.className = 'media-btn';
+           downloadBtn.textContent = '⬇️ Download';
+           downloadBtn.onclick = () => downloadMedia(part.url, 'generated-audio.wav');
+           container.appendChild(downloadBtn);
+           div.appendChild(container);
+        } else if (part.type === 'audio_input') {
+           // Audio uploaded for speech-to-text
+           const audio = document.createElement('audio');
+           audio.src = part.url;
+           audio.controls = true;
+           audio.className = 'input-audio';
+           div.appendChild(audio);
         }
       });
     } else {

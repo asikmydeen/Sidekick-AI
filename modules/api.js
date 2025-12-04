@@ -293,3 +293,155 @@ export async function* streamChatApi(state, newMsgContent, signal) {
     }
   }
 }
+
+// ===== HuggingFace Multi-Modal Tasks =====
+
+/**
+ * Text-to-Image generation using HuggingFace Inference
+ * Returns a base64 data URL of the generated image
+ */
+export async function textToImage(model, prompt, apiKey, options = {}) {
+  const url = `https://router.huggingface.co/hf-inference/models/${model}`;
+
+  const body = {
+    inputs: prompt,
+    parameters: {
+      guidance_scale: options.guidanceScale || 7.5,
+      num_inference_steps: options.steps || 30,
+      width: options.width || 512,
+      height: options.height || 512,
+      negative_prompt: options.negativePrompt || ''
+    }
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Image generation failed (${response.status}): ${errorText}`);
+  }
+
+  // Response is binary image data
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+/**
+ * Image-to-Text (image captioning) using HuggingFace Inference
+ * Returns a text description of the image
+ */
+export async function imageToText(model, imageData, apiKey) {
+  const url = `https://router.huggingface.co/hf-inference/models/${model}`;
+
+  // If imageData is a base64 data URL, extract just the base64 part
+  let binaryData;
+  if (typeof imageData === 'string' && imageData.startsWith('data:')) {
+    const base64 = imageData.split(',')[1];
+    binaryData = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+  } else if (imageData instanceof Blob) {
+    binaryData = await imageData.arrayBuffer();
+  } else {
+    binaryData = imageData;
+  }
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/octet-stream'
+    },
+    body: binaryData
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Image captioning failed (${response.status}): ${errorText}`);
+  }
+
+  const result = await response.json();
+  // Response format: [{ "generated_text": "description" }]
+  if (Array.isArray(result) && result[0]?.generated_text) {
+    return result[0].generated_text;
+  }
+  return JSON.stringify(result);
+}
+
+/**
+ * Text-to-Speech using HuggingFace Inference
+ * Returns a base64 data URL of the generated audio
+ */
+export async function textToSpeech(model, text, apiKey) {
+  const url = `https://router.huggingface.co/hf-inference/models/${model}`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ inputs: text })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Speech generation failed (${response.status}): ${errorText}`);
+  }
+
+  // Response is binary audio data
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+/**
+ * Speech-to-Text (ASR) using HuggingFace Inference
+ * Returns transcribed text
+ */
+export async function speechToText(model, audioData, apiKey) {
+  const url = `https://router.huggingface.co/hf-inference/models/${model}`;
+
+  // If audioData is a base64 data URL, extract the binary
+  let binaryData;
+  if (typeof audioData === 'string' && audioData.startsWith('data:')) {
+    const base64 = audioData.split(',')[1];
+    binaryData = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+  } else if (audioData instanceof Blob) {
+    binaryData = await audioData.arrayBuffer();
+  } else {
+    binaryData = audioData;
+  }
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'audio/flac'  // Most common format for Whisper
+    },
+    body: binaryData
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Speech recognition failed (${response.status}): ${errorText}`);
+  }
+
+  const result = await response.json();
+  // Response format: { "text": "transcription" }
+  return result.text || JSON.stringify(result);
+}
