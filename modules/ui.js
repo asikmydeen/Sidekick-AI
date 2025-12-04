@@ -48,6 +48,7 @@ export const elements = {
   clearHistoryBtn: document.getElementById('clearHistoryBtn'),
 
   exportBtn: document.getElementById('exportBtn'),
+  expandBtn: document.getElementById('expandBtn'),
   themeBtn: document.getElementById('themeBtn'),
   chatHistory: document.getElementById('chatHistory'),
   messageInput: document.getElementById('messageInput'),
@@ -59,7 +60,15 @@ export const elements = {
   includePageContent: document.getElementById('includePageContent'),
   promptChipsContainer: document.getElementById('promptChips'),
   tokenCount: document.getElementById('tokenCount'),
-  attachmentPreview: document.getElementById('attachmentPreview')
+  attachmentPreview: document.getElementById('attachmentPreview'),
+
+  // Full-page mode elements
+  mediaGallery: document.getElementById('mediaGallery'),
+  galleryGrid: document.getElementById('galleryGrid'),
+  mediaLightbox: document.getElementById('mediaLightbox'),
+  closeLightbox: document.getElementById('closeLightbox'),
+  lightboxPrompt: document.getElementById('lightboxPrompt'),
+  lightboxDownload: document.getElementById('lightboxDownload')
 };
 
 export function applyTheme(theme) {
@@ -252,6 +261,32 @@ export function appendMessageToDOM(role, content, id = null, isLoading = false) 
            downloadBtn.className = 'media-btn';
            downloadBtn.textContent = '⬇️ Download';
            downloadBtn.onclick = () => downloadMedia(part.url, 'generated-audio.wav');
+           container.appendChild(downloadBtn);
+           div.appendChild(container);
+        } else if (part.type === 'generated_video') {
+           // Generated video from text-to-video
+           const container = document.createElement('div');
+           container.className = 'generated-media-container video-container';
+           const video = document.createElement('video');
+           video.src = part.url;
+           video.controls = true;
+           video.autoplay = false;
+           video.loop = true;
+           video.muted = false;
+           video.className = 'generated-video';
+           video.title = part.prompt || 'Generated video';
+           container.appendChild(video);
+           // Add expand button for full view
+           const expandBtn = document.createElement('button');
+           expandBtn.className = 'media-btn';
+           expandBtn.textContent = '🔲 Full View';
+           expandBtn.onclick = () => openLightbox(part.url, 'video', part.prompt);
+           container.appendChild(expandBtn);
+           // Add download button
+           const downloadBtn = document.createElement('button');
+           downloadBtn.className = 'media-btn';
+           downloadBtn.textContent = '⬇️ Download';
+           downloadBtn.onclick = () => downloadMedia(part.url, 'generated-video.mp4');
            container.appendChild(downloadBtn);
            div.appendChild(container);
         } else if (part.type === 'audio_input') {
