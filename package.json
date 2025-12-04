@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "rm -rf dist && mkdir -p dist/modules dist/lib && cp manifest.json sidepanel.html sidepanel.js styles.css background.js content.js ollama-bridge.html icon*.png dist/ && cp modules/*.js dist/modules/ && cp lib/*.js dist/lib/",
     "preview": "vite preview"
   },
   "devDependencies": {
