@@ -828,7 +828,7 @@ async function handleHuggingFaceTask(task, text, session) {
         UI.appendMessageToDOM('assistant', null, msgId, true);
 
         // Transcribe
-        const transcription = await API.speechToText(model, audioData, apiKey);
+        const transcription = await API.speechToText(model, audioData, apiKey, { provider: hfProvider });
 
         // Remove loading and show result
         UI.removeMessage(msgId);
