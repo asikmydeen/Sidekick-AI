@@ -19,6 +19,7 @@ export let state = {
   temperature: 0.7,
   quickPrompts: DEFAULT_QUICK_PROMPTS,
   theme: 'light',
+  autoRead: false, // New TTS setting
   currentSessionId: null,
   sessions: [] // Array of { id, title, messages, lastModified }
 };
@@ -42,6 +43,7 @@ export async function loadState() {
 
     // Defaults
     if (state.temperature === undefined) state.temperature = 0.7;
+    if (state.autoRead === undefined) state.autoRead = false;
     if (!state.quickPrompts) state.quickPrompts = DEFAULT_QUICK_PROMPTS;
     if (!state.endpoint) state.endpoint = 'http://localhost:11434';
     
@@ -92,7 +94,10 @@ export function updateCurrentSession(messages) {
     if (session.title === 'New Chat' && messages.length > 0) {
       const firstUserMsg = messages.find(m => m.role === 'user');
       if (firstUserMsg) {
-        session.title = firstUserMsg.content.slice(0, 30) + (firstUserMsg.content.length > 30 ? '...' : '');
+        // Extract text if array
+        let txt = firstUserMsg.content;
+        if (Array.isArray(txt)) txt = txt.find(p => p.type === 'text')?.text || "Image";
+        session.title = txt.slice(0, 30) + (txt.length > 30 ? '...' : '');
       }
     }
     saveState();

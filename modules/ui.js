@@ -19,6 +19,7 @@ export const elements = {
   temperatureInput: document.getElementById('temperature'),
   tempValueLabel: document.getElementById('tempValue'),
   quickPromptsInput: document.getElementById('quickPromptsConfig'),
+  autoReadInput: document.getElementById('autoRead'),
   startChatBtn: document.getElementById('startChatBtn'),
   settingsBtn: document.getElementById('settingsBtn'),
   // New UI Elements
@@ -157,17 +158,24 @@ export function renderChat(messages, modelName) {
   updateTokenCount(messages);
 }
 
-// Updated to handle array content (Multimodal)
+// Updated to handle array content (Multimodal) and TTS
 export function appendMessageToDOM(role, content, id = null, isLoading = false) {
   const div = document.createElement('div');
   div.className = `message ${role}`;
   if (id) div.id = id;
   
+  // Extract text content for TTS later
+  let textContent = "";
+  if (typeof content === 'string') textContent = content;
+  else if (Array.isArray(content)) {
+    textContent = content.find(c => c.type === 'text')?.text || "";
+  }
+
   if (isLoading) {
     div.innerHTML = `<div class="typing-dots"><span></span><span></span><span></span></div>`;
   } else {
+    // Content rendering
     if (Array.isArray(content)) {
-      // Handle multimodal (text + images)
       content.forEach(part => {
         if (part.type === 'text') {
            const p = document.createElement('div');
@@ -181,21 +189,151 @@ export function appendMessageToDOM(role, content, id = null, isLoading = false) 
         }
       });
     } else {
-      // Legacy string format
       if (content) div.innerHTML = parseMarkdown(content);
+    }
+    
+    // Add Speaker button for assistant
+    if (role === 'assistant' && textContent) {
+      const controls = document.createElement('div');
+      controls.className = 'msg-controls';
+      
+      const speakBtn = document.createElement('button');
+      speakBtn.className = 'msg-btn';
+      speakBtn.textContent = '🔊';
+      speakBtn.title = 'Read aloud';
+      speakBtn.onclick = () => toggleSpeech(textContent, speakBtn);
+      
+      controls.appendChild(speakBtn);
+      div.appendChild(controls);
     }
   }
   
   elements.chatHistory.appendChild(div);
+  
+  // Re-attach event listeners for copy buttons since innerHTML wiped them
+  div.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const code = e.target.parentElement.querySelector('code').textContent;
+      navigator.clipboard.writeText(code);
+      const originalText = e.target.textContent;
+      e.target.textContent = "Copied!";
+      e.target.classList.add('copied');
+      setTimeout(() => {
+        e.target.textContent = originalText;
+        e.target.classList.remove('copied');
+      }, 2000);
+    });
+  });
+
   scrollToBottom();
 }
 
 export function updateStreamingMessage(id, text) {
   const el = document.getElementById(id);
   if (el) {
+    // We only update the content, preserving the wrapper if we can, but 
+    // simply re-parsing markdown is safest for streaming partial HTML
+    // Note: Streaming doesn't add the speak button until finished (in renderChat or final update)
+    // To keep it simple, we just update HTML. The speak button is added when the message is "finished" in logic.
     el.innerHTML = parseMarkdown(text);
     scrollToBottom();
   }
+}
+
+export function finalizeMessageInDOM(id, content) {
+  // Re-render the message completely to add buttons correctly
+  const el = document.getElementById(id);
+  if (el) {
+    el.innerHTML = ''; // Clear
+    // We manually rebuild inside the existing div to avoid scroll jumps or losing ID
+    let textContent = "";
+    if (typeof content === 'string') textContent = content;
+    
+    const p = document.createElement('div');
+    p.innerHTML = parseMarkdown(textContent);
+    el.appendChild(p);
+    
+    const controls = document.createElement('div');
+    controls.className = 'msg-controls';
+    
+    const speakBtn = document.createElement('button');
+    speakBtn.className = 'msg-btn';
+    speakBtn.textContent = '🔊';
+    speakBtn.title = 'Read aloud';
+    speakBtn.onclick = () => toggleSpeech(textContent, speakBtn);
+    
+    controls.appendChild(speakBtn);
+    el.appendChild(controls);
+
+    // Attach copy listeners
+    el.querySelectorAll('.copy-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const code = e.target.parentElement.querySelector('code').textContent;
+        navigator.clipboard.writeText(code);
+        const originalText = e.target.textContent;
+        e.target.textContent = "Copied!";
+        e.target.classList.add('copied');
+        setTimeout(() => {
+          e.target.textContent = originalText;
+          e.target.classList.remove('copied');
+        }, 2000);
+      });
+    });
+    
+    scrollToBottom();
+  }
+}
+
+// Text to Speech
+function toggleSpeech(text, btn) {
+  if (window.speechSynthesis.speaking) {
+    window.speechSynthesis.cancel();
+    document.querySelectorAll('.msg-btn.speaking').forEach(b => {
+       b.classList.remove('speaking');
+       b.textContent = '🔊';
+    });
+    return;
+  }
+  
+  speakText(text, btn);
+}
+
+export function speakText(text, btn = null) {
+  window.speechSynthesis.cancel(); // Stop previous
+  
+  // Strip markdown for cleaner reading
+  const cleanText = text.replace(/[*#`_\[\]]/g, '');
+  
+  const utterance = new SpeechSynthesisUtterance(cleanText);
+  utterance.lang = 'en-US';
+  utterance.rate = 1.0;
+  
+  utterance.onstart = () => {
+    if (btn) {
+      btn.classList.add('speaking');
+      btn.textContent = '⏹';
+    }
+  };
+  
+  utterance.onend = () => {
+    if (btn) {
+      btn.classList.remove('speaking');
+      btn.textContent = '🔊';
+    }
+  };
+  
+  utterance.onerror = () => {
+     if (btn) {
+      btn.classList.remove('speaking');
+      btn.textContent = '🔊';
+    }
+  };
+  
+  window.speechSynthesis.speak(utterance);
+}
+
+export function stopSpeaking() {
+  window.speechSynthesis.cancel();
 }
 
 export function updateTokenCount(messages) {
@@ -205,7 +343,6 @@ export function updateTokenCount(messages) {
     else if (Array.isArray(m.content)) {
       m.content.forEach(c => {
          if (c.type === 'text') totalTxt += c.text;
-         // Very rough estimate for images: 1000 tokens
          if (c.type === 'image_url') totalTxt += " ".repeat(4000); 
       });
     }

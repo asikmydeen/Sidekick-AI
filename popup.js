@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     UI.elements.tempValueLabel.textContent = state.temperature;
   }
   if (state.quickPrompts) UI.elements.quickPromptsInput.value = state.quickPrompts;
+  if (state.autoRead) UI.elements.autoReadInput.checked = state.autoRead;
 
   // Restore Chat View if active
   if (state.model) {
@@ -75,7 +76,8 @@ UI.elements.startChatBtn.addEventListener('click', () => {
     model: selectedModel,
     systemPrompt: UI.elements.systemPromptInput.value.trim(),
     temperature: parseFloat(UI.elements.temperatureInput.value),
-    quickPrompts: UI.elements.quickPromptsInput.value.trim()
+    quickPrompts: UI.elements.quickPromptsInput.value.trim(),
+    autoRead: UI.elements.autoReadInput.checked
   });
   
   switchToChat();
@@ -222,6 +224,7 @@ UI.elements.stopBtn.addEventListener('click', () => {
   if (abortController) {
     abortController.abort();
     abortController = null;
+    UI.stopSpeaking();
     UI.toggleLoading(false);
   }
 });
@@ -273,6 +276,7 @@ async function sendMessage() {
   const session = getCurrentSession();
   if (!session) return;
 
+  UI.stopSpeaking(); // Stop any current speech
   const includePage = UI.elements.includePageContent.checked;
   let finalText = text;
   
@@ -284,10 +288,7 @@ async function sendMessage() {
   }
 
   // Construct Message Content
-  // If we have images, content becomes array: [{ type: 'text', text: ... }, { type: 'image_url', ... }]
-  // If text only, content is string
   let messageContent;
-  
   if (pendingAttachments.length > 0) {
     messageContent = [];
     if (finalText) messageContent.push({ type: 'text', text: finalText });
@@ -332,6 +333,12 @@ async function sendMessage() {
     updateCurrentSession(session.messages);
     UI.updateTokenCount(session.messages);
     
+    // Finalize DOM (add buttons) and Auto-Read
+    UI.finalizeMessageInDOM(msgId, fullResponse);
+    if (state.autoRead) {
+      UI.speakText(fullResponse);
+    }
+    
   } catch (err) {
     if (err.name !== 'AbortError') {
       UI.removeMessage(msgId);
@@ -340,6 +347,7 @@ async function sendMessage() {
       if (fullResponse) {
         session.messages.push({ role: 'assistant', content: fullResponse });
         updateCurrentSession(session.messages);
+        UI.finalizeMessageInDOM(msgId, fullResponse);
       }
     }
   } finally {

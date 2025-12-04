@@ -208,12 +208,44 @@ select, input, textarea { width: 100%; padding: 8px; border: 1px solid var(--bor
 .primary-btn { width: 100%; padding: 10px; background: var(--primary-color); color: white; border: none; border-radius: 6px; cursor: pointer; }
 .status-msg { margin-top: 10px; font-size: 12px; text-align: center; color: var(--text-color); opacity: 0.7; }
 
+/* Checkbox specific */
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: normal;
+}
+.checkbox-label input {
+  width: auto;
+}
+
 /* Chat Area */
 .chat-history { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-.message { max-width: 85%; padding: 8px 12px; border-radius: 12px; font-size: 14px; line-height: 1.5; word-wrap: break-word; }
+.message { max-width: 85%; padding: 8px 12px; border-radius: 12px; font-size: 14px; line-height: 1.5; word-wrap: break-word; position: relative; }
 .message.user { align-self: flex-end; background: var(--user-msg-bg); color: var(--user-msg-text); border-bottom-right-radius: 2px; }
-.message.assistant { align-self: flex-start; background: var(--bot-msg-bg); color: var(--bot-msg-text); border-bottom-left-radius: 2px; }
+.message.assistant { align-self: flex-start; background: var(--bot-msg-bg); color: var(--bot-msg-text); border-bottom-left-radius: 2px; padding-bottom: 24px; }
 .message.error { align-self: center; background: #fee2e2; color: #991b1b; }
+
+/* Message Controls */
+.msg-controls {
+  position: absolute;
+  bottom: 2px;
+  right: 6px;
+  display: flex;
+  gap: 4px;
+}
+.msg-btn {
+  background: none;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  opacity: 0.6;
+  padding: 2px;
+  color: var(--text-color);
+}
+.msg-btn:hover { opacity: 1; transform: scale(1.1); }
+.msg-btn.speaking { color: var(--primary-color); animation: pulse 1s infinite; }
 
 /* Image Support */
 .chat-image {
@@ -260,8 +292,9 @@ select, input, textarea { width: 100%; padding: 8px; border: 1px solid var(--bor
 
 /* Code Blocks */
 .code-wrapper { position: relative; margin: 8px 0; }
-.message pre { background: var(--code-bg); color: var(--code-text); padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 12px; }
-.copy-btn { position: absolute; top: 5px; right: 5px; background: rgba(255,255,255,0.2); color: #fff; border: none; border-radius: 4px; padding: 2px 6px; font-size: 10px; cursor: pointer; }
+.message pre { background: var(--code-bg); color: var(--code-text); padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 12px; margin: 0; }
+.copy-btn { position: absolute; top: 5px; right: 5px; background: rgba(255,255,255,0.2); color: #fff; border: none; border-radius: 4px; padding: 2px 6px; font-size: 10px; cursor: pointer; transition: all 0.2s; }
+.copy-btn.copied { background: #10b981; }
 
 /* Input */
 .chat-input-wrapper { background: var(--header-bg); border-top: 1px solid var(--border-color); display: flex; flex-direction: column; }

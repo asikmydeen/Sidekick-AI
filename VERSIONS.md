@@ -71,3 +71,9 @@
 - **Multimedia Support**: Added full support for image attachments (Vision) via OpenAI, OpenRouter, and Ollama.
 - **UI Updates**: Added image preview thumbnails in the input area and chat history.
 - **API Logic**: Updated API handler to format messages as standard JSON content arrays for Vision models.
+
+## v2.0.0 – 2025-08-25
+- **Text-to-Speech (TTS)**: The AI can now read its responses aloud using the browser's native speech synthesis.
+- **Auto-Read**: Added a setting to automatically read responses as soon as they are generated.
+- **UX Improvements**: "Copy" buttons now provide visual feedback ("Copied!") when clicked.
+- **Message Controls**: Assistant messages now have dedicated control buttons for TTS.
