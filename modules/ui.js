@@ -661,10 +661,16 @@ function parseMarkdown(text) {
   if (!text) return '';
   let safeText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-  // Store think blocks for later restoration
+  // Handle completed think blocks
   const thinkBlocks = [];
   safeText = safeText.replace(/&lt;think&gt;([\s\S]*?)&lt;\/think&gt;/g, (_match, content) => {
-    thinkBlocks.push(content.trim());
+    thinkBlocks.push({ content: content.trim(), isComplete: true });
+    return `__THINKBLOCK_${thinkBlocks.length - 1}__`;
+  });
+
+  // Handle incomplete/streaming think blocks (opened but not closed)
+  safeText = safeText.replace(/&lt;think&gt;([\s\S]*)$/g, (_match, content) => {
+    thinkBlocks.push({ content: content.trim(), isComplete: false });
     return `__THINKBLOCK_${thinkBlocks.length - 1}__`;
   });
 
@@ -693,11 +699,16 @@ function parseMarkdown(text) {
   // Restore think blocks with collapsible UI
   safeText = safeText.replace(/__THINKBLOCK_(\d+)__/g, (_match, index) => {
     const blockId = `think-${Date.now()}-${index}`;
-    const content = thinkBlocks[index].replace(/&lt;br&gt;/g, '<br>').replace(/<br>/g, '<br>');
-    return `<div class="think-block" id="${blockId}">
+    const block = thinkBlocks[index];
+    const content = block.content.replace(/&lt;br&gt;/g, '<br>');
+    const streamingClass = block.isComplete ? '' : ' streaming';
+    const statusText = block.isComplete ? 'Thinking Process' : 'Thinking...';
+    const expandedClass = block.isComplete ? '' : ' expanded';
+
+    return `<div class="think-block${streamingClass}${expandedClass}" id="${blockId}">
       <div class="think-header" onclick="this.parentElement.classList.toggle('expanded')">
-        <span class="think-icon">💭</span>
-        <span class="think-label">Thinking Process</span>
+        <span class="think-icon">${block.isComplete ? '💭' : '⏳'}</span>
+        <span class="think-label">${statusText}</span>
         <span class="think-toggle">▼</span>
       </div>
       <div class="think-content">
