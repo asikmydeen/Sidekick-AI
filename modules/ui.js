@@ -7,18 +7,19 @@ export const elements = {
   chatSection: document.getElementById('chatSection'),
   advancedSettings: document.getElementById('advancedSettings'),
   providerSelect: document.getElementById('provider'),
-  
+
   apiKeyInput: document.getElementById('apiKey'),
   apiKeyGroup: document.getElementById('apiKeyGroup'),
-  
+
   endpointInput: document.getElementById('endpoint'),
   endpointGroup: document.getElementById('endpointGroup'),
-  
+
   awsGroup: document.getElementById('awsGroup'),
   awsAccessKey: document.getElementById('awsAccessKey'),
   awsSecretKey: document.getElementById('awsSecretKey'),
+  awsSessionToken: document.getElementById('awsSessionToken'),
   awsRegion: document.getElementById('awsRegion'),
-  
+
   fetchModelsBtn: document.getElementById('fetchModelsBtn'),
   fetchStatus: document.getElementById('fetchStatus'),
   modelSelect: document.getElementById('model'),
@@ -30,14 +31,14 @@ export const elements = {
   autoReadInput: document.getElementById('autoRead'),
   startChatBtn: document.getElementById('startChatBtn'),
   settingsBtn: document.getElementById('settingsBtn'),
-  
+
   historyBtn: document.getElementById('historyBtn'),
   newChatBtn: document.getElementById('newChatBtn'),
   historySidebar: document.getElementById('historySidebar'),
   sessionList: document.getElementById('sessionList'),
   closeSidebarBtn: document.getElementById('closeSidebarBtn'),
   clearHistoryBtn: document.getElementById('clearHistoryBtn'),
-  
+
   exportBtn: document.getElementById('exportBtn'),
   themeBtn: document.getElementById('themeBtn'),
   chatHistory: document.getElementById('chatHistory'),
@@ -100,12 +101,12 @@ export function renderSessionList(sessions, currentId, onSwitch, onDelete) {
     const item = document.createElement('div');
     item.className = `session-item ${session.id === currentId ? 'active' : ''}`;
     let displayTitle = session.title || 'New Chat';
-    
+
     const title = document.createElement('span');
     title.className = 'session-title';
     title.textContent = displayTitle;
     title.onclick = () => onSwitch(session.id);
-    
+
     const delBtn = document.createElement('button');
     delBtn.textContent = '×';
     delBtn.className = 'session-delete';
@@ -113,7 +114,7 @@ export function renderSessionList(sessions, currentId, onSwitch, onDelete) {
       e.stopPropagation();
       onDelete(session.id);
     };
-    
+
     item.appendChild(title);
     item.appendChild(delBtn);
     elements.sessionList.appendChild(item);
@@ -167,7 +168,7 @@ export function appendMessageToDOM(role, content, id = null, isLoading = false) 
   const div = document.createElement('div');
   div.className = `message ${role}`;
   if (id) div.id = id;
-  
+
   let textContent = "";
   if (typeof content === 'string') textContent = content;
   else if (Array.isArray(content)) {
@@ -193,24 +194,24 @@ export function appendMessageToDOM(role, content, id = null, isLoading = false) 
     } else {
       if (content) div.innerHTML = parseMarkdown(content);
     }
-    
+
     if (role === 'assistant' && textContent) {
       const controls = document.createElement('div');
       controls.className = 'msg-controls';
-      
+
       const speakBtn = document.createElement('button');
       speakBtn.className = 'msg-btn';
       speakBtn.textContent = '🔊';
       speakBtn.title = 'Read aloud';
       speakBtn.onclick = () => toggleSpeech(textContent, speakBtn);
-      
+
       controls.appendChild(speakBtn);
       div.appendChild(controls);
     }
   }
-  
+
   elements.chatHistory.appendChild(div);
-  
+
   div.querySelectorAll('.copy-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const code = e.target.parentElement.querySelector('code').textContent;
@@ -239,23 +240,23 @@ export function updateStreamingMessage(id, text) {
 export function finalizeMessageInDOM(id, content) {
   const el = document.getElementById(id);
   if (el) {
-    el.innerHTML = ''; 
+    el.innerHTML = '';
     let textContent = "";
     if (typeof content === 'string') textContent = content;
-    
+
     const p = document.createElement('div');
     p.innerHTML = parseMarkdown(textContent);
     el.appendChild(p);
-    
+
     const controls = document.createElement('div');
     controls.className = 'msg-controls';
-    
+
     const speakBtn = document.createElement('button');
     speakBtn.className = 'msg-btn';
     speakBtn.textContent = '🔊';
     speakBtn.title = 'Read aloud';
     speakBtn.onclick = () => toggleSpeech(textContent, speakBtn);
-    
+
     controls.appendChild(speakBtn);
     el.appendChild(controls);
 
@@ -272,7 +273,7 @@ export function finalizeMessageInDOM(id, content) {
         }, 2000);
       });
     });
-    
+
     scrollToBottom();
   }
 }
@@ -290,33 +291,33 @@ function toggleSpeech(text, btn) {
 }
 
 export function speakText(text, btn = null) {
-  window.speechSynthesis.cancel(); 
+  window.speechSynthesis.cancel();
   const cleanText = text.replace(/[*#`_\[\]]/g, '');
   const utterance = new SpeechSynthesisUtterance(cleanText);
   utterance.lang = 'en-US';
   utterance.rate = 1.0;
-  
+
   utterance.onstart = () => {
     if (btn) {
       btn.classList.add('speaking');
       btn.textContent = '⏹';
     }
   };
-  
+
   utterance.onend = () => {
     if (btn) {
       btn.classList.remove('speaking');
       btn.textContent = '🔊';
     }
   };
-  
+
   utterance.onerror = () => {
      if (btn) {
       btn.classList.remove('speaking');
       btn.textContent = '🔊';
     }
   };
-  
+
   window.speechSynthesis.speak(utterance);
 }
 
@@ -331,12 +332,12 @@ export function updateTokenCount(messages) {
     else if (Array.isArray(m.content)) {
       m.content.forEach(c => {
          if (c.type === 'text') totalTxt += c.text;
-         if (c.type === 'image_url') totalTxt += " ".repeat(4000); 
+         if (c.type === 'image_url') totalTxt += " ".repeat(4000);
       });
     }
   });
   const count = estimateTokens(totalTxt);
-  const limit = 128000; 
+  const limit = 128000;
   const percent = Math.min((count / limit) * 100, 100).toFixed(1);
   elements.tokenCount.textContent = `${count.toLocaleString()} tokens used`;
   elements.tokenCount.title = `Approx. ${percent}% of 128k context window`;
@@ -376,15 +377,15 @@ export function renderAttachments(attachments, onRemove) {
   attachments.forEach((att, index) => {
     const thumb = document.createElement('div');
     thumb.className = 'preview-thumb';
-    
+
     const img = document.createElement('img');
     img.src = att.base64;
-    
+
     const btn = document.createElement('button');
     btn.className = 'remove-btn';
     btn.textContent = '×';
     btn.onclick = () => onRemove(index);
-    
+
     thumb.appendChild(img);
     thumb.appendChild(btn);
     elements.attachmentPreview.appendChild(thumb);
