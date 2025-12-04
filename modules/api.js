@@ -328,43 +328,32 @@ export async function textToImage(model, prompt, apiKey, options = {}) {
 }
 
 /**
- * Image-to-Text (image captioning) using HuggingFace Inference
+ * Image-to-Text (image captioning) using HuggingFace Inference Client
  * Returns a text description of the image
  */
 export async function imageToText(model, imageData, apiKey) {
-  const url = `https://api-inference.huggingface.co/models/${model}`;
+  const client = new InferenceClient(apiKey);
 
-  // If imageData is a base64 data URL, extract just the base64 part
-  let binaryData;
+  // Convert base64 data URL to Blob if needed
+  let imageBlob;
   if (typeof imageData === 'string' && imageData.startsWith('data:')) {
     const base64 = imageData.split(',')[1];
-    binaryData = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+    const mimeType = imageData.split(';')[0].split(':')[1];
+    const binaryData = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+    imageBlob = new Blob([binaryData], { type: mimeType });
   } else if (imageData instanceof Blob) {
-    binaryData = await imageData.arrayBuffer();
+    imageBlob = imageData;
   } else {
-    binaryData = imageData;
+    imageBlob = new Blob([imageData]);
   }
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/octet-stream'
-    },
-    body: binaryData
+  const result = await client.imageToText({
+    provider: 'auto',
+    model: model,
+    data: imageBlob
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Image captioning failed (${response.status}): ${errorText}`);
-  }
-
-  const result = await response.json();
-  // Response format: [{ "generated_text": "description" }]
-  if (Array.isArray(result) && result[0]?.generated_text) {
-    return result[0].generated_text;
-  }
-  return JSON.stringify(result);
+  return result.generated_text || JSON.stringify(result);
 }
 
 /**
