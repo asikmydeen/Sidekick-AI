@@ -227,9 +227,10 @@ export async function* streamChatApi(state, newMsgContent, signal) {
      const text = json.output?.message?.content?.[0]?.text || '';
      yield text;
   } else if (provider === 'huggingface') {
-    // Hugging Face Inference API - uses OpenAI-compatible chat completions format
-    // New endpoint: router.huggingface.co (api-inference.huggingface.co is deprecated)
-    url = `https://router.huggingface.co/hf-inference/models/${model}/v1/chat/completions`;
+    // Hugging Face Router API - OpenAI-compatible endpoint
+    // Supports multiple providers with format: model-name or model-name:provider
+    // e.g., "meta-llama/Llama-3.2-3B-Instruct" or "deepseek-ai/DeepSeek-V3:novita"
+    url = 'https://router.huggingface.co/v1/chat/completions';
 
     // Convert messages to OpenAI format
     const hfMessages = rawMessages.map(m => {
@@ -262,8 +263,8 @@ export async function* streamChatApi(state, newMsgContent, signal) {
 
     if (!hfRes.ok) {
       const errorText = await hfRes.text();
-      if (hfRes.status === 404 || errorText.includes('paused') || errorText.includes('not found')) {
-        throw new Error(`Model "${model}" is not available on HF Serverless Inference. Try a different model from the list.`);
+      if (hfRes.status === 404 || hfRes.status === 422) {
+        throw new Error(`Model "${model}" not found. Check the model name and provider format.`);
       }
       throw new Error(`Hugging Face API error (${hfRes.status}): ${errorText}`);
     }
