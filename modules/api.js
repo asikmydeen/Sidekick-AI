@@ -1,7 +1,8 @@
 // modules/api.js
 import { signRequest } from './aws.js';
+import { state, getCurrentProviderCredentials } from './state.js';
 
-export async function fetchModels(provider, key, endpoint = '', awsCreds = {}) {
+export async function fetchModels(provider, credentials) {
   let url = '';
   let headers = {};
   let transform = (data) => [];
@@ -9,37 +10,37 @@ export async function fetchModels(provider, key, endpoint = '', awsCreds = {}) {
   switch (provider) {
     case 'openai':
       url = 'https://api.openai.com/v1/models';
-      headers = { 'Authorization': `Bearer ${key}` };
+      headers = { 'Authorization': `Bearer ${credentials.apiKey}` };
       transform = (data) => data.data.map(m => m.id).filter(id => id.startsWith('gpt')).sort();
       break;
     case 'openrouter':
       url = 'https://openrouter.ai/api/v1/models';
-      headers = { 'Authorization': `Bearer ${key}` };
+      headers = { 'Authorization': `Bearer ${credentials.apiKey}` };
       transform = (data) => data.data.map(m => m.id).sort();
       break;
     case 'huggingface':
       url = 'https://huggingface.co/api/models?pipeline_tag=text-generation&sort=downloads&direction=-1&limit=50';
-      headers = { 'Authorization': `Bearer ${key}` };
+      headers = { 'Authorization': `Bearer ${credentials.apiKey}` };
       transform = (data) => data.map(m => m.id);
       break;
     case 'anthropic':
       throw new Error('Anthropic API does not support listing models automatically.');
     case 'ollama':
-      const base = endpoint.replace(/\/$/, '');
+      const base = credentials.endpoint.replace(/\/$/, '');
       url = `${base}/api/tags`;
       transform = (data) => data.models.map(m => m.name);
       break;
     case 'bedrock':
       // ListFoundationModels
-      const region = awsCreds.region || 'us-east-1';
+      const region = credentials.region || 'us-east-1';
       url = `https://bedrock.${region}.amazonaws.com/foundation-models?byOutputModality=TEXT`;
       const signedHeaders = await signRequest({
         method: 'GET',
         url,
         headers: { 'content-type': 'application/json' },
-        accessKey: awsCreds.accessKey,
-        secretKey: awsCreds.secretKey,
-        sessionToken: awsCreds.sessionToken,
+        accessKey: credentials.accessKey,
+        secretKey: credentials.secretKey,
+        sessionToken: credentials.sessionToken,
         region,
         service: 'bedrock'
       });
@@ -60,8 +61,14 @@ export async function fetchModels(provider, key, endpoint = '', awsCreds = {}) {
 
 // Stream generator function
 export async function* streamChatApi(state, newMsgContent, signal) {
-  const { provider, apiKey, model, temperature, endpoint, systemPrompt, awsAccessKey, awsSecretKey, awsSessionToken, awsRegion } = state;
+  const { provider, model, temperature, systemPrompt } = state;
   const messages = state.sessions.find(s => s.id === state.currentSessionId)?.messages || [];
+
+  const credentials = getCurrentProviderCredentials();
+
+  if (!credentials) {
+    throw new Error(`No credentials configured for provider: ${provider}`);
+  }
 
   let url = '';
   let headers = { 'Content-Type': 'application/json' };
@@ -73,7 +80,7 @@ export async function* streamChatApi(state, newMsgContent, signal) {
   const rawMessages = messages.map(m => ({ role: m.role, content: m.content }));
 
   if (provider === 'openai' || provider === 'openrouter') {
-    if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+    if (credentials.apiKey) headers['Authorization'] = `Bearer ${credentials.apiKey}`;
     history.push(...rawMessages);
 
     url = provider === 'openai' ? 'https://api.openai.com/v1/chat/completions' : 'https://openrouter.ai/api/v1/chat/completions';
@@ -100,7 +107,7 @@ export async function* streamChatApi(state, newMsgContent, signal) {
       }
     }
   } else if (provider === 'ollama') {
-     const base = endpoint ? endpoint.replace(/\/$/, '') : 'http://localhost:11434';
+     const base = credentials.endpoint ? credentials.endpoint.replace(/\/$/, '') : 'http://localhost:11434';
      url = `${base}/api/chat`;
 
      const ollamaMessages = rawMessages.map(msg => {
@@ -145,7 +152,7 @@ export async function* streamChatApi(state, newMsgContent, signal) {
      // To support streaming with AWS SigV4 via REST without SDK requires complex event-stream binary parsing.
      // Fallback to non-streaming invocation for stability.
 
-     const region = awsRegion || 'us-east-1';
+     const region = credentials.region || 'us-east-1';
      url = `https://bedrock-runtime.${region}.amazonaws.com/model/${model}/converse`;
 
      const bedrockMessages = rawMessages.map(m => {
@@ -172,9 +179,9 @@ export async function* streamChatApi(state, newMsgContent, signal) {
         url,
         headers: { 'content-type': 'application/json' },
         body,
-        accessKey: awsAccessKey,
-        secretKey: awsSecretKey,
-        sessionToken: awsSessionToken,
+        accessKey: credentials.accessKey,
+        secretKey: credentials.secretKey,
+        sessionToken: credentials.sessionToken,
         region,
         service: 'bedrock'
      });
@@ -192,7 +199,7 @@ export async function* streamChatApi(state, newMsgContent, signal) {
           return `${m.role}: ${txt}`;
      }).join('\n');
      const hfBody = { inputs: fullPrompt, parameters: { max_new_tokens: 500, return_full_text: false, temperature } };
-     const hfRes = await fetch(url, { method: 'POST', headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(hfBody), signal });
+     const hfRes = await fetch(url, { method: 'POST', headers: { 'Authorization': `Bearer ${credentials.apiKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(hfBody), signal });
      if (!hfRes.ok) {
        const errorText = await hfRes.text();
        throw new Error(`Hugging Face API error (${hfRes.status}): ${errorText}`);
