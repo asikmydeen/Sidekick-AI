@@ -208,7 +208,10 @@ label { margin-bottom: 5px; font-size: 12px; font-weight: 600; color: var(--text
 select, input, textarea { width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--input-bg); color: var(--text-color); box-sizing: border-box; }
 
 .primary-btn { width: 100%; padding: 10px; background: var(--primary-color); color: white; border: none; border-radius: 6px; cursor: pointer; }
+.secondary-btn { padding: 8px 12px; background: var(--border-color); color: var(--text-color); border: none; border-radius: 6px; cursor: pointer; }
+.secondary-btn:hover { opacity: 0.8; }
 .status-msg { margin-top: 10px; font-size: 12px; text-align: center; color: var(--text-color); opacity: 0.7; }
+.hint-text { display: block; margin-top: 4px; font-size: 11px; color: var(--text-color); opacity: 0.6; }
 
 /* Checkbox specific */
 .checkbox-label {
