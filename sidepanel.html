@@ -88,6 +88,16 @@
         </select>
       </div>
 
+      <!-- Manual model entry for providers that don't support model listing -->
+      <div id="manualModelGroup" class="form-group hidden">
+        <label for="manualModel">Enter Model Name</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="manualModel" placeholder="e.g., meta-llama/Llama-3.2-3B-Instruct" style="flex: 1;" />
+          <button id="saveModelBtn" class="secondary-btn" style="white-space: nowrap;">Add</button>
+        </div>
+        <small id="modelHint" class="hint-text"></small>
+      </div>
+
       <div id="advancedSettings" class="hidden">
         <div class="form-group">
           <label for="systemPrompt">System Instructions (Persona)</label>
