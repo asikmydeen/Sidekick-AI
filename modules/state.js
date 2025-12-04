@@ -78,6 +78,12 @@ export const HF_TASK_MODELS = {
     'openai/whisper-medium',
     'openai/whisper-small',
     'facebook/wav2vec2-large-960h-lv60-self'
+  ],
+  'text-to-video': [
+    'ali-vilab/text-to-video-ms-1.7b',
+    'cerspense/zeroscope_v2_576w',
+    'ByteDance/AnimateDiff-Lightning',
+    'hotshotco/Hotshot-XL'
   ]
 };
 
