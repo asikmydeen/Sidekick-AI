@@ -478,7 +478,7 @@ function parseMarkdown(text) {
   if (!text) return '';
   let safeText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const codeBlocks = [];
-  safeText = safeText.replace(/```([\s\S]*?)```/g, (match, code) => {
+  safeText = safeText.replace(/```([\s\S]*?)```/g, (_match, code) => {
     codeBlocks.push(code);
     return `__CODEBLOCK_${codeBlocks.length - 1}__`;
   });
