@@ -103,6 +103,16 @@ export function toggleSidebar(show) {
   }
 }
 
+// Helper to download media (images, audio)
+function downloadMedia(dataUrl, filename) {
+  const a = document.createElement('a');
+  a.href = dataUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
 export function renderSessionList(sessions, currentId, onSwitch, onDelete) {
   elements.sessionList.innerHTML = '';
   sessions.forEach(session => {
