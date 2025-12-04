@@ -141,7 +141,14 @@ export async function* streamChatApi(state, newMsgContent, signal) {
 
         console.log('[Ollama] Request body:', JSON.stringify(body, null, 2));
 
-        const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal });
+        const response = await fetch(url, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(body),
+          signal,
+          mode: 'cors',
+          credentials: 'omit'
+        });
 
         console.log('[Ollama] Response status:', response.status, response.statusText);
 
