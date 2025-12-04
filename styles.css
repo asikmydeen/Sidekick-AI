@@ -828,32 +828,189 @@ body.dark-mode .think-header:hover {
   font-size: 12px;
 }
 
-/* Input */
-.chat-input-wrapper { background: var(--header-bg); border-top: 1px solid var(--border-color); display: flex; flex-direction: column; }
-.prompt-chips { display: flex; gap: 8px; padding: 8px 10px 0; overflow-x: auto; scrollbar-width: none; }
-.chip { background: var(--chip-bg); color: var(--chip-text); border: 1px solid var(--border-color); border-radius: 12px; padding: 4px 10px; font-size: 11px; cursor: pointer; white-space: nowrap; }
+/* Input Area - Modern Design */
+.chat-input-wrapper {
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+}
 
-.chat-controls { padding: 4px 10px; display: flex; justify-content: space-between; align-items: center; }
-.token-count { font-size: 10px; color: var(--text-color); opacity: 0.6; }
-.context-toggle { display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; color: var(--text-color); margin: 0; }
+.prompt-chips {
+  display: flex;
+  gap: 10px;
+  padding: 12px 16px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
 
-.chat-input-area { padding: 10px; display: flex; gap: 6px; align-items: flex-end; }
-.chat-input-area textarea { flex: 1; padding: 8px; border: 1px solid var(--border-color); border-radius: 12px; resize: none; max-height: 100px; box-sizing: border-box; }
+.prompt-chips::-webkit-scrollbar {
+  display: none;
+}
 
-.send-btn { background: var(--primary-color); color: white; border: none; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.stop-btn { background: #dc2626; }
-.mic-btn, .file-btn { font-size: 18px; padding: 6px; border-radius: 50%; color: var(--text-color); opacity: 0.7; }
-.mic-btn:hover, .file-btn:hover { background: var(--chip-bg); opacity: 1; }
-.mic-btn.listening { color: var(--mic-active); animation: pulse 1.5s infinite; }
+.chip {
+  background: var(--chip-bg);
+  color: var(--chip-text);
+  border: 1px solid var(--chip-border);
+  border-radius: var(--radius-full);
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
 
-@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+.chip:hover {
+  background: var(--primary-light);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  transform: translateY(-1px);
+}
 
-/* Typing Dots */
-.typing-dots { display: inline-flex; gap: 4px; padding: 5px 0; }
-.typing-dots span { width: 6px; height: 6px; background: var(--text-color); opacity: 0.6; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
+.chat-controls {
+  padding: 8px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.token-count {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.context-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.context-toggle:hover {
+  background: var(--primary-light);
+  color: var(--primary-color);
+}
+
+.chat-input-area {
+  padding: 12px 16px 16px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.chat-input-area textarea {
+  flex: 1;
+  padding: 12px 16px;
+  border: 2px solid var(--input-border);
+  border-radius: var(--radius-lg);
+  resize: none;
+  max-height: 120px;
+  font-size: 14px;
+  line-height: 1.5;
+  background: var(--input-bg);
+  color: var(--text-color);
+  transition: all var(--transition-fast);
+}
+
+.chat-input-area textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.chat-input-area textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.send-btn {
+  background: var(--primary-gradient);
+  color: white;
+  border: none;
+  border-radius: var(--radius-full);
+  width: 42px;
+  height: 42px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 16px;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-md);
+}
+
+.send-btn:hover {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-lg);
+}
+
+.send-btn:active {
+  transform: scale(0.98);
+}
+
+.stop-btn {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.mic-btn, .file-btn {
+  font-size: 18px;
+  padding: 10px;
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  background: transparent;
+  transition: all var(--transition-fast);
+}
+
+.mic-btn:hover, .file-btn:hover {
+  background: var(--primary-light);
+  color: var(--primary-color);
+}
+
+.mic-btn.listening {
+  color: var(--mic-active);
+  background: rgba(239, 68, 68, 0.1);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+/* Typing Dots - Improved Animation */
+.typing-dots {
+  display: inline-flex;
+  gap: 6px;
+  padding: 8px 0;
+  align-items: center;
+}
+
+.typing-dots span {
+  width: 8px;
+  height: 8px;
+  background: var(--primary-color);
+  opacity: 0.7;
+  border-radius: var(--radius-full);
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+
 .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
 .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
-@keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0.4); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
+}
 
 /* Generated Video Styles */
 .generated-video {
@@ -871,50 +1028,63 @@ body.dark-mode .think-header:hover {
   margin-right: 8px;
 }
 
-/* Full Page Mode */
+/* Full Page Mode - Enterprise Design */
 body.full-page-mode {
   width: 100vw;
   height: 100vh;
   margin: 0;
   padding: 0;
+  background: var(--bg-color);
 }
 
 body.full-page-mode .container {
   max-width: 100%;
   width: 100%;
   height: 100vh;
+  background: linear-gradient(180deg, var(--bg-color) 0%, var(--bg-secondary) 100%);
 }
 
-/* Header in full-page mode - normal flex layout, no positioning tricks */
+/* Header in full-page mode - Glass effect */
 body.full-page-mode header {
-  padding: 12px 24px;
+  padding: 16px 32px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: var(--header-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-color);
 }
 
 body.full-page-mode .header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
 body.full-page-mode .header-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 body.full-page-mode .header-left h1 {
-  font-size: 18px;
+  font-size: 20px;
   margin: 0;
+  font-weight: 700;
+}
+
+body.full-page-mode .icon-btn {
+  padding: 10px 12px;
+  font-size: 1.15rem;
 }
 
 /* Chat section takes up remaining space */
 body.full-page-mode #chatSection {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 56px);
+  height: calc(100vh - 65px);
+  background: transparent;
 }
 
 /* Chat history - centered with max width */
@@ -923,71 +1093,83 @@ body.full-page-mode .chat-history {
   max-width: 900px;
   width: 100%;
   margin: 0 auto;
-  padding: 24px 32px;
-  gap: 16px;
+  padding: 32px 40px;
+  gap: 20px;
   overflow-y: auto;
+  background: transparent;
 }
 
-/* Input wrapper - centered with max width */
+/* Input wrapper - centered with max width, floating card style */
 body.full-page-mode .chat-input-wrapper {
   max-width: 900px;
-  width: 100%;
-  margin: 0 auto;
-  border-top: 1px solid var(--border-color);
-  background: var(--header-bg);
+  width: calc(100% - 48px);
+  margin: 0 auto 24px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-lg);
 }
 
 /* Messages - wider in full page */
 body.full-page-mode .message {
-  max-width: 80%;
-  padding: 14px 18px;
+  max-width: 75%;
+  padding: 16px 22px;
   font-size: 15px;
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
 body.full-page-mode .message.user {
-  background: linear-gradient(135deg, var(--primary-color), #3b82f6);
-  border-radius: 18px 18px 4px 18px;
+  background: var(--primary-gradient);
+  border-radius: var(--radius-xl) var(--radius-xl) var(--radius-sm) var(--radius-xl);
+  box-shadow: var(--shadow-lg);
 }
 
 body.full-page-mode .message.assistant {
   background: var(--bot-msg-bg);
-  border-radius: 18px 18px 18px 4px;
-  padding-bottom: 30px;
+  border-radius: var(--radius-xl) var(--radius-xl) var(--radius-xl) var(--radius-sm);
+  padding-bottom: 40px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-md);
 }
 
 /* Media containers */
 body.full-page-mode .generated-media-container {
-  padding: 16px;
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 12px;
-  margin-top: 12px;
+  padding: 20px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  margin-top: 16px;
+  border: 1px solid var(--border-color);
 }
 
 body.full-page-mode .generated-image,
 body.full-page-mode .generated-video {
   max-height: 500px;
   max-width: 100%;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
 }
 
 /* Input area improvements */
+body.full-page-mode .chat-input-area {
+  padding: 16px 20px 20px;
+}
+
 body.full-page-mode .chat-input-area textarea {
   font-size: 15px;
-  padding: 14px 18px;
-  border-radius: 16px;
-  min-height: 50px;
+  padding: 14px 20px;
+  border-radius: var(--radius-lg);
+  min-height: 52px;
+  border-width: 2px;
 }
 
 body.full-page-mode .prompt-chips {
-  padding: 12px 20px 0;
-  gap: 10px;
+  padding: 16px 20px 0;
+  gap: 12px;
 }
 
 body.full-page-mode .chip {
-  padding: 8px 16px;
+  padding: 10px 20px;
   font-size: 13px;
-  border-radius: 20px;
+  border-radius: var(--radius-full);
 }
 
 body.full-page-mode .send-btn {
