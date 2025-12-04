@@ -242,6 +242,13 @@ if (UI.elements.expandBtn) {
   });
 }
 
+// Collapse back to sidebar (show instructions since we can't open sidepanel programmatically)
+if (UI.elements.collapseBtn) {
+  UI.elements.collapseBtn.addEventListener('click', () => {
+    alert('To return to sidebar mode:\n\n1. Close this tab\n2. Click the extension icon in your browser toolbar\n\nThe sidebar will open with your chat history preserved.');
+  });
+}
+
 // Gallery tab filtering
 document.querySelectorAll('.gallery-tab').forEach(tab => {
   tab.addEventListener('click', () => {
