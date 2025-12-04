@@ -233,7 +233,6 @@ textarea {
   opacity: 1;
 }
 
-/* Markdown elements */
 .message h1, .message h2, .message h3 {
   font-size: 1.1em;
   margin: 5px 0;
@@ -258,11 +257,39 @@ textarea {
   text-decoration: underline;
 }
 
-/* Input Area */
-.chat-input-area {
-  padding: 10px;
+/* Input Area Wrapper */
+.chat-input-wrapper {
   background: var(--header-bg);
   border-top: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-controls {
+  padding: 4px 10px 0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.context-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  color: var(--text-color);
+  opacity: 0.8;
+  margin-bottom: 0;
+}
+
+.context-toggle input {
+  width: auto;
+  margin: 0;
+  cursor: pointer;
+}
+
+.chat-input-area {
+  padding: 10px;
   display: flex;
   gap: 10px;
   align-items: flex-end;
@@ -295,9 +322,14 @@ textarea {
   justify-content: center;
   flex-shrink: 0;
   margin-bottom: 2px;
+  font-size: 16px;
 }
 
-/* Typing Indicator Animation */
+.stop-btn {
+  background: #dc2626; /* Red for stop */
+  font-size: 12px;
+}
+
 .typing-dots {
   display: inline-flex;
   gap: 4px;

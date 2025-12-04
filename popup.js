@@ -25,6 +25,15 @@ if (typeof chrome === 'undefined' || !chrome.storage) {
     runtime: {
       onInstalled: { addListener: () => {} },
       onMessage: { addListener: () => {} }
+    },
+    tabs: {
+      query: async () => [{ id: 1 }] // Mock active tab
+    },
+    scripting: {
+      executeScript: async ({ target, func }) => {
+        // Mock content for preview
+        return [{ result: "This is a mock page content from the web preview mode.\n\nIt simulates what the extension would read from a real webpage." }];
+      }
     }
   };
 }
@@ -48,6 +57,8 @@ const themeBtn = document.getElementById('themeBtn');
 const chatHistory = document.getElementById('chatHistory');
 const messageInput = document.getElementById('messageInput');
 const sendBtn = document.getElementById('sendBtn');
+const stopBtn = document.getElementById('stopBtn');
+const includePageContent = document.getElementById('includePageContent');
 
 // State
 let state = {
@@ -58,6 +69,8 @@ let state = {
   theme: 'light',
   messages: [] // Array of { role, content }
 };
+
+let abortController = null;
 
 // --- Initialization ---
 
@@ -78,7 +91,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Restore Model UI if we have state
     if (state.model) {
        if (state.messages.length > 0) {
-         // Fake the model option
          modelSelect.innerHTML = `<option value="${state.model}" selected>${state.model}</option>`;
          modelSelectionDiv.classList.remove('hidden');
          systemPromptDiv.classList.remove('hidden');
@@ -205,6 +217,21 @@ messageInput.addEventListener('input', function() {
 });
 
 sendBtn.addEventListener('click', sendMessage);
+stopBtn.addEventListener('click', () => {
+  if (abortController) {
+    abortController.abort();
+    abortController = null;
+    
+    // UI Cleanup
+    const loadingEl = document.querySelector('.typing-dots').closest('.message');
+    if (loadingEl) {
+      loadingEl.textContent = '[Stopped by user]';
+      loadingEl.classList.add('error');
+    }
+    toggleLoading(false);
+  }
+});
+
 messageInput.addEventListener('keypress', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
@@ -212,7 +239,6 @@ messageInput.addEventListener('keypress', (e) => {
   }
 });
 
-// Copy Code Button
 chatHistory.addEventListener('click', (e) => {
   if (e.target.classList.contains('copy-btn')) {
     const btn = e.target;
@@ -317,24 +343,98 @@ function renderChat() {
   chatHistory.scrollTop = chatHistory.scrollHeight;
 }
 
+// --- Content Extraction ---
+
+async function getPageContent() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    
+    if (!tab) return null;
+    
+    // Cannot script on chrome:// pages
+    if (tab.url.startsWith('chrome://')) {
+      return "Cannot read content from browser system pages.";
+    }
+
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => {
+        return document.body.innerText;
+      }
+    });
+
+    if (results && results[0] && results[0].result) {
+      // Truncate to avoid token limits (approx 10k chars is safe for most modern models)
+      const text = results[0].result;
+      return text.length > 10000 ? text.substring(0, 10000) + "\n...[Content Truncated]" : text;
+    }
+    return null;
+  } catch (err) {
+    console.error("Failed to read page:", err);
+    return `Error reading page: ${err.message}`;
+  }
+}
+
+// --- Messaging ---
+
+function toggleLoading(isLoading) {
+  if (isLoading) {
+    sendBtn.classList.add('hidden');
+    stopBtn.classList.remove('hidden');
+    messageInput.disabled = true;
+  } else {
+    sendBtn.classList.remove('hidden');
+    stopBtn.classList.add('hidden');
+    messageInput.disabled = false;
+    messageInput.focus();
+  }
+}
+
 async function sendMessage() {
-  const text = messageInput.value.trim();
+  let text = messageInput.value.trim();
   if (!text) return;
 
+  const shouldIncludeContext = includePageContent.checked;
+  let contextMsg = "";
+
+  toggleLoading(true);
+
+  // 1. Get Page Context if requested
+  if (shouldIncludeContext) {
+    const content = await getPageContent();
+    if (content) {
+      contextMsg = `\n\n--- Page Content ---\n${content}\n---------------------`;
+      // Don't show context in chat bubble to keep UI clean, but send it to API
+      // Or show a small note that context was sent.
+      text += ` [Attached Page Context]`; 
+    }
+  }
+
+  // 2. Update UI
   const userMsg = { role: 'user', content: text };
+  
+  // Note: We save the text with the [Attached] marker to history
+  // But for the API, we will append the real content.
   state.messages.push(userMsg);
   saveState();
   
   appendMessageToDOM('user', text);
   messageInput.value = '';
   messageInput.style.height = '';
+  includePageContent.checked = false; // Reset toggle
+
+  // 3. Prepare API Prompt
+  // We use the actual text minus the [Attached] marker + real context for the API
+  const apiPrompt = text.replace(' [Attached Page Context]', '') + contextMsg;
 
   const loadingId = 'loading-' + Date.now();
-  // Pass true for isLoading to show animation
   appendMessageToDOM('assistant', null, loadingId, true);
 
+  // 4. Send
+  abortController = new AbortController();
+
   try {
-    const responseText = await callChatApi(text);
+    const responseText = await callChatApi(apiPrompt, abortController.signal);
     
     const loadingEl = document.getElementById(loadingId);
     if (loadingEl) loadingEl.remove();
@@ -345,9 +445,17 @@ async function sendMessage() {
     
     appendMessageToDOM('assistant', responseText);
   } catch (err) {
-    const loadingEl = document.getElementById(loadingId);
-    if (loadingEl) loadingEl.remove();
-    appendMessageToDOM('error', `Error: ${err.message}`);
+    if (err.name === 'AbortError') {
+      // Handled in stop button click, but good to catch here too just in case
+      console.log('Generation stopped by user');
+    } else {
+      const loadingEl = document.getElementById(loadingId);
+      if (loadingEl) loadingEl.remove();
+      appendMessageToDOM('error', `Error: ${err.message}`);
+    }
+  } finally {
+    toggleLoading(false);
+    abortController = null;
   }
 }
 
@@ -398,7 +506,7 @@ function parseMarkdown(text) {
   return safeText;
 }
 
-async function callChatApi(userMessage) {
+async function callChatApi(userPrompt, signal) {
   const { provider, apiKey, model, messages, systemPrompt } = state;
   let url = '';
   let headers = {
@@ -407,7 +515,22 @@ async function callChatApi(userMessage) {
   };
   let body = {};
 
+  // Build History
   const apiMessages = messages.map(m => ({ role: m.role, content: m.content }));
+  
+  // NOTE: The 'userPrompt' passed here contains the LATEST context-enriched message.
+  // We need to NOT treat the last message in state.messages as the prompt, 
+  // because that one is just "User typed X [Attached]". 
+  // Instead, we form a new temporary message list for this call.
+  
+  // Remove the last message from the history array we just built, 
+  // because we want to replace it with the enriched prompt.
+  // The last message in 'messages' is the one we just pushed in sendMessage().
+  apiMessages.pop(); 
+  
+  // Add the enriched prompt as the latest user message
+  apiMessages.push({ role: 'user', content: userPrompt });
+
   if (systemPrompt) apiMessages.unshift({ role: 'system', content: systemPrompt });
 
   switch (provider) {
@@ -435,13 +558,13 @@ async function callChatApi(userMessage) {
     case 'huggingface':
       url = `https://api-inference.huggingface.co/models/${model}`;
       const fullPrompt = systemPrompt 
-        ? `${systemPrompt}\n\n${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
-        : messages.map(m => `${m.role}: ${m.content}`).join('\n');
+        ? `${systemPrompt}\n\n${apiMessages.map(m => `${m.role}: ${m.content}`).join('\n')}`
+        : apiMessages.map(m => `${m.role}: ${m.content}`).join('\n');
       body = { inputs: fullPrompt, parameters: { max_new_tokens: 500, return_full_text: false } };
       break;
   }
 
-  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body), signal: signal });
 
   if (!response.ok) {
     const errText = await response.text();

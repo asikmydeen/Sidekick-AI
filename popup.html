@@ -59,9 +59,18 @@
       <div id="chatHistory" class="chat-history">
         <!-- Messages will appear here -->
       </div>
-      <div class="chat-input-area">
-        <textarea id="messageInput" placeholder="Type your message..." rows="1"></textarea>
-        <button id="sendBtn" class="send-btn">➤</button>
+      <div class="chat-input-wrapper">
+        <div class="chat-controls">
+           <label class="context-toggle" title="Send current page text to AI">
+             <input type="checkbox" id="includePageContent"> 
+             <span>📄 Read Page</span>
+           </label>
+        </div>
+        <div class="chat-input-area">
+          <textarea id="messageInput" placeholder="Type your message..." rows="1"></textarea>
+          <button id="sendBtn" class="send-btn">➤</button>
+          <button id="stopBtn" class="send-btn stop-btn hidden">⏹</button>
+        </div>
       </div>
     </div>
   </div>

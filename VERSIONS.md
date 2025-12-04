@@ -33,3 +33,9 @@
 - Added Dark Mode support with a toggle button in the header
 - Added "Export Chat" functionality to download history as a Markdown file
 - Added animated "typing dots" indicator for better visual feedback during API calls
+
+## v1.5.0 – 2025-08-25
+- Added "Read Page" functionality: sends current tab content to AI for context
+- Added "Stop" button to abort text generation mid-request
+- Added `scripting` permission to manifest.json for page content extraction
+- Added `chrome.scripting` and `chrome.tabs` to mock API for web preview stability
