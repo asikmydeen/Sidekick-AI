@@ -22,3 +22,9 @@
 - Added basic Markdown support: renders code blocks, bold, and italics without external libraries
 - Added "Clear Chat" button to wipe history
 - Improved styles for code blocks and headers
+
+## v1.3.0 – 2025-08-25
+- Added System Instructions field in settings to customize AI behavior
+- Enhanced Markdown parser to support headers (h1-h3), links, and bullet lists
+- Added "Copy" buttons to all code blocks for easy clipboard access
+- Added auto-expanding chat input textarea for better UX

@@ -38,6 +38,8 @@ const fetchModelsBtn = document.getElementById('fetchModelsBtn');
 const fetchStatus = document.getElementById('fetchStatus');
 const modelSelect = document.getElementById('model');
 const modelSelectionDiv = document.getElementById('modelSelection');
+const systemPromptDiv = document.getElementById('systemPromptDiv');
+const systemPromptInput = document.getElementById('systemPrompt');
 const startChatBtn = document.getElementById('startChatBtn');
 const settingsBtn = document.getElementById('settingsBtn');
 const clearChatBtn = document.getElementById('clearChatBtn');
@@ -50,6 +52,7 @@ let state = {
   provider: '',
   apiKey: '',
   model: '',
+  systemPrompt: '',
   messages: [] // Array of { role, content }
 };
 
@@ -64,16 +67,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Pre-fill fields
     if (state.provider) providerSelect.value = state.provider;
     if (state.apiKey) apiKeyInput.value = state.apiKey;
+    if (state.systemPrompt) systemPromptInput.value = state.systemPrompt;
     
-    // If we have messages, we might want to go straight to chat
-    // But we need to ensure the model is "set" or at least valid.
-    // For now, if we have a model selected, we offer to continue.
-    if (state.model && state.messages.length > 0) {
-      // Auto-populate model select just to be safe if they go back
-      modelSelect.innerHTML = `<option value="${state.model}" selected>${state.model}</option>`;
-      modelSelectionDiv.classList.remove('hidden');
-      startChatBtn.classList.remove('hidden');
-      switchToChat();
+    // Restore Model UI if we have state
+    if (state.model) {
+       // Show the UI elements for model/system prompt even if we need to fetch logic later
+       // But usually, we only go to chat if we have a model.
+       if (state.messages.length > 0) {
+         // Fake the model option so we don't look empty
+         modelSelect.innerHTML = `<option value="${state.model}" selected>${state.model}</option>`;
+         modelSelectionDiv.classList.remove('hidden');
+         systemPromptDiv.classList.remove('hidden');
+         startChatBtn.classList.remove('hidden');
+         switchToChat();
+       }
     }
   }
 });
@@ -95,6 +102,7 @@ fetchModelsBtn.addEventListener('click', async () => {
 
   showStatus('Fetching models...', 'info');
   modelSelectionDiv.classList.add('hidden');
+  systemPromptDiv.classList.add('hidden');
   startChatBtn.classList.add('hidden');
   modelSelect.innerHTML = '<option value="" disabled selected>Select a model...</option>';
 
@@ -107,17 +115,18 @@ fetchModelsBtn.addEventListener('click', async () => {
     populateModelSelect(models);
     showStatus(`Found ${models.length} models.`, 'success');
     modelSelectionDiv.classList.remove('hidden');
+    systemPromptDiv.classList.remove('hidden');
     startChatBtn.classList.remove('hidden');
   } catch (err) {
     console.error(err);
     showStatus(`Error: ${err.message}`, 'error');
     
-    // Fallback for providers that might fail listing (e.g., Anthropic sometimes)
     if (provider === 'anthropic') {
       showStatus('Using default Anthropic models.', 'info');
       const defaults = ['claude-3-5-sonnet-20240620', 'claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307'];
       populateModelSelect(defaults);
       modelSelectionDiv.classList.remove('hidden');
+      systemPromptDiv.classList.remove('hidden');
       startChatBtn.classList.remove('hidden');
     }
   }
@@ -130,6 +139,7 @@ startChatBtn.addEventListener('click', () => {
     return;
   }
   state.model = selectedModel;
+  state.systemPrompt = systemPromptInput.value.trim();
   saveState();
   
   switchToChat();
@@ -150,11 +160,36 @@ clearChatBtn.addEventListener('click', () => {
   }
 });
 
+// Auto-expand textarea
+messageInput.addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = (this.scrollHeight) + 'px';
+  if (this.value === '') this.style.height = '';
+});
+
 sendBtn.addEventListener('click', sendMessage);
 messageInput.addEventListener('keypress', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     sendMessage();
+  }
+});
+
+// Copy Code Button Delegation
+chatHistory.addEventListener('click', (e) => {
+  if (e.target.classList.contains('copy-btn')) {
+    const btn = e.target;
+    const codeBlock = btn.nextElementSibling.querySelector('code');
+    const text = codeBlock.textContent;
+    
+    navigator.clipboard.writeText(text).then(() => {
+      const originalText = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = originalText, 2000);
+    }).catch(err => {
+      console.error('Failed to copy:', err);
+      btn.textContent = 'Error';
+    });
   }
 });
 
@@ -202,7 +237,6 @@ async function fetchModels(provider, key) {
 }
 
 function populateModelSelect(models) {
-  // Clear existing options except default
   modelSelect.innerHTML = '<option value="" disabled selected>Select a model...</option>';
   models.forEach(m => {
     const option = document.createElement('option');
@@ -239,22 +273,20 @@ async function sendMessage() {
   const text = messageInput.value.trim();
   if (!text) return;
 
-  // 1. Update State & UI with User Message
   const userMsg = { role: 'user', content: text };
   state.messages.push(userMsg);
   saveState();
   
   appendMessageToDOM('user', text);
   messageInput.value = '';
+  messageInput.style.height = ''; // Reset height
 
-  // 2. Loading State
   const loadingId = 'loading-' + Date.now();
   appendMessageToDOM('assistant', 'Thinking...', loadingId);
 
   try {
     const responseText = await callChatApi(text);
     
-    // 3. Remove Loading & Add Assistant Message
     const loadingEl = document.getElementById(loadingId);
     if (loadingEl) loadingEl.remove();
     
@@ -275,7 +307,6 @@ function appendMessageToDOM(role, text, id = null) {
   div.className = `message ${role}`;
   if (id) div.id = id;
   
-  // Basic Markdown Parsing
   if (role !== 'error' && role !== 'user' && text !== 'Thinking...') {
     div.innerHTML = parseMarkdown(text);
   } else {
@@ -286,41 +317,54 @@ function appendMessageToDOM(role, text, id = null) {
   chatHistory.scrollTop = chatHistory.scrollHeight;
 }
 
-// Simple Parser for "Vanilla JS" requirement (avoiding heavy libs)
+// Enhanced Vanilla Markdown Parser
 function parseMarkdown(text) {
-  // Escape HTML first to prevent injection
   let safeText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-  // 1. Code Blocks: ```code```
-  // We use a placeholder strategy to prevent code content from being formatted by bold/italic rules
+  // 1. Extract Code Blocks
   const codeBlocks = [];
   safeText = safeText.replace(/```([\s\S]*?)```/g, (match, code) => {
     codeBlocks.push(code);
     return `__CODEBLOCK_${codeBlocks.length - 1}__`;
   });
 
-  // 2. Inline Code: `code`
+  // 2. Headers: ### H3, ## H2, # H1
+  safeText = safeText.replace(/^### (.*$)/gm, '<h3>$1</h3>');
+  safeText = safeText.replace(/^## (.*$)/gm, '<h2>$1</h2>');
+  safeText = safeText.replace(/^# (.*$)/gm, '<h1>$1</h1>');
+
+  // 3. Lists: - Item or * Item
+  // Simple replacement to bullet points (not true nested lists but visually okay)
+  safeText = safeText.replace(/^[\*\-] (.*$)/gm, '<ul><li>$1</li></ul>');
+  // Fix adjacent ULs to merge them? Regex is hard for that. Let's just trust CSS margin.
+
+  // 4. Inline Code
   safeText = safeText.replace(/`([^`]+)`/g, '<code style="background:#eee;padding:2px 4px;border-radius:4px;color:#d63384;">$1</code>');
 
-  // 3. Bold: **text**
+  // 5. Bold & Italic
   safeText = safeText.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-
-  // 4. Italic: *text*
   safeText = safeText.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  
+  // 6. Links [Title](url)
+  safeText = safeText.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
 
-  // 5. Newlines to <br>
+  // 7. Newlines to <br>
   safeText = safeText.replace(/\n/g, '<br>');
 
-  // Restore Code Blocks
+  // Restore Code Blocks with Copy Button
   safeText = safeText.replace(/__CODEBLOCK_(\d+)__/g, (match, index) => {
-    return `<pre><code>${codeBlocks[index]}</code></pre>`;
+    return `
+      <div class="code-wrapper">
+        <button class="copy-btn">Copy</button>
+        <pre><code>${codeBlocks[index]}</code></pre>
+      </div>`;
   });
 
   return safeText;
 }
 
 async function callChatApi(userMessage) {
-  const { provider, apiKey, model, messages } = state;
+  const { provider, apiKey, model, messages, systemPrompt } = state;
   let url = '';
   let headers = {
     'Content-Type': 'application/json',
@@ -328,11 +372,12 @@ async function callChatApi(userMessage) {
   };
   let body = {};
 
-  // Construct message history for context (exclude last user message which is in userMessage arg, but included in state)
-  // Actually, we should send the whole history for context.
-  // Note: HF inference often takes single input, others take messages array.
-  
+  // Build full message history including System Prompt
   const apiMessages = messages.map(m => ({ role: m.role, content: m.content }));
+  
+  if (systemPrompt) {
+    apiMessages.unshift({ role: 'system', content: systemPrompt });
+  }
 
   switch (provider) {
     case 'openai':
@@ -353,19 +398,27 @@ async function callChatApi(userMessage) {
       headers['anthropic-version'] = '2023-06-01';
       delete headers['Authorization'];
       
+      const anthropicSystem = systemPrompt || undefined;
+      const anthropicMessages = apiMessages.filter(m => m.role !== 'system');
+      
       body = {
         model: model,
         max_tokens: 1024,
-        messages: apiMessages.filter(m => m.role !== 'system') // Anthropic handles system separate usually, keeping simple
+        system: anthropicSystem,
+        messages: anthropicMessages
       };
       break;
 
     case 'huggingface':
       url = `https://api-inference.huggingface.co/models/${model}`;
-      // HF simple inference usually just takes the last string prompt
-      // Advanced usage requires constructing a prompt string manually based on model type
+      // HF is simple inference, constructing a prompt string is better than passing array usually
+      // For simplicity in this template, we just send user message + history as text block
+      const fullPrompt = systemPrompt 
+        ? `${systemPrompt}\n\n${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
+        : messages.map(m => `${m.role}: ${m.content}`).join('\n');
+
       body = {
-        inputs: userMessage, 
+        inputs: fullPrompt, 
         parameters: { max_new_tokens: 500, return_full_text: false }
       };
       break;

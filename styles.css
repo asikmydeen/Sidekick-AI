@@ -83,13 +83,18 @@ label {
   color: #555;
 }
 
-select, input {
+select, input, textarea {
   width: 100%;
   padding: 8px;
   border: 1px solid var(--border-color);
   border-radius: 6px;
   box-sizing: border-box;
   font-size: 14px;
+  font-family: inherit;
+}
+
+textarea {
+  resize: vertical;
 }
 
 .primary-btn {
@@ -163,18 +168,54 @@ select, input {
 }
 
 /* Markdown / Code Styling */
+.code-wrapper {
+  position: relative;
+  margin: 8px 0;
+}
+
 .message pre {
   background-color: var(--code-bg);
   color: var(--code-text);
-  padding: 10px;
+  padding: 12px;
   border-radius: 6px;
   overflow-x: auto;
-  margin: 5px 0;
+  margin: 0;
   font-size: 12px;
 }
 
 .message code {
   font-family: Consolas, Monaco, "Andale Mono", monospace;
+}
+
+.copy-btn {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 10px;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.copy-btn:hover {
+  background: rgba(255, 255, 255, 0.4);
+  opacity: 1;
+}
+
+/* Markdown elements */
+.message h1, .message h2, .message h3 {
+  font-size: 1.1em;
+  margin: 5px 0;
+  font-weight: 700;
+}
+
+.message ul, .message ol {
+  padding-left: 20px;
+  margin: 5px 0;
 }
 
 .message p {
@@ -185,23 +226,32 @@ select, input {
   margin-bottom: 0;
 }
 
+.message a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+/* Input Area */
 .chat-input-area {
   padding: 10px;
   background: white;
   border-top: 1px solid var(--border-color);
   display: flex;
   gap: 10px;
-  align-items: center;
+  align-items: flex-end; /* Align to bottom so textarea grows up */
 }
 
-textarea {
+.chat-input-area textarea {
   flex: 1;
   padding: 8px;
   border: 1px solid var(--border-color);
-  border-radius: 20px;
+  border-radius: 12px;
   resize: none;
   font-family: inherit;
   outline: none;
+  max-height: 100px;
+  min-height: 38px;
+  overflow-y: auto;
 }
 
 .send-btn {
@@ -215,4 +265,6 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  margin-bottom: 2px; /* Visual alignment with textarea */
 }
