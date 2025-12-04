@@ -112,7 +112,7 @@ export function toggleSidebar(show) {
   }
 }
 
-// Helper to download media (images, audio)
+// Helper to download media (images, audio, video)
 function downloadMedia(dataUrl, filename) {
   const a = document.createElement('a');
   a.href = dataUrl;
@@ -120,6 +120,136 @@ function downloadMedia(dataUrl, filename) {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
+}
+
+// Open media in lightbox for full view
+export function openLightbox(url, type, prompt = '') {
+  if (!elements.mediaLightbox) return;
+
+  const lightboxContent = elements.mediaLightbox.querySelector('.lightbox-content');
+  lightboxContent.innerHTML = '';
+
+  if (type === 'video') {
+    const video = document.createElement('video');
+    video.src = url;
+    video.controls = true;
+    video.autoplay = true;
+    video.className = 'lightbox-video';
+    lightboxContent.appendChild(video);
+  } else if (type === 'image') {
+    const img = document.createElement('img');
+    img.src = url;
+    img.className = 'lightbox-image';
+    lightboxContent.appendChild(img);
+  }
+
+  if (elements.lightboxPrompt) {
+    elements.lightboxPrompt.textContent = prompt;
+  }
+
+  if (elements.lightboxDownload) {
+    elements.lightboxDownload.onclick = () => {
+      const ext = type === 'video' ? 'mp4' : 'png';
+      downloadMedia(url, `generated-${type}.${ext}`);
+    };
+  }
+
+  elements.mediaLightbox.classList.remove('hidden');
+
+  // Close on escape key
+  const handleEscape = (e) => {
+    if (e.key === 'Escape') closeLightbox();
+  };
+  document.addEventListener('keydown', handleEscape);
+  elements.mediaLightbox._escapeHandler = handleEscape;
+}
+
+export function closeLightbox() {
+  if (!elements.mediaLightbox) return;
+
+  elements.mediaLightbox.classList.add('hidden');
+  const lightboxContent = elements.mediaLightbox.querySelector('.lightbox-content');
+  if (lightboxContent) lightboxContent.innerHTML = '';
+
+  // Remove escape handler
+  if (elements.mediaLightbox._escapeHandler) {
+    document.removeEventListener('keydown', elements.mediaLightbox._escapeHandler);
+  }
+}
+
+// Initialize lightbox close button
+if (elements.closeLightbox) {
+  elements.closeLightbox.addEventListener('click', closeLightbox);
+}
+
+// Check if running in full-page mode (not in sidebar)
+export function isFullPageMode() {
+  // If opened as a regular tab (not sidebar), the window will be wider
+  return window.innerWidth > 500;
+}
+
+// Toggle full-page mode UI adjustments
+export function initFullPageMode() {
+  if (isFullPageMode()) {
+    document.body.classList.add('full-page-mode');
+    // Hide expand button in full page mode
+    if (elements.expandBtn) {
+      elements.expandBtn.classList.add('hidden');
+    }
+  }
+}
+
+// Render media gallery from session messages
+export function renderMediaGallery(messages, filter = 'all') {
+  if (!elements.galleryGrid) return;
+
+  elements.galleryGrid.innerHTML = '';
+
+  messages.forEach(msg => {
+    if (msg.role !== 'assistant' || !Array.isArray(msg.content)) return;
+
+    msg.content.forEach(part => {
+      if (part.type === 'generated_image' && (filter === 'all' || filter === 'image')) {
+        const card = createMediaCard('image', part.url, part.prompt);
+        elements.galleryGrid.appendChild(card);
+      } else if (part.type === 'generated_video' && (filter === 'all' || filter === 'video')) {
+        const card = createMediaCard('video', part.url, part.prompt);
+        elements.galleryGrid.appendChild(card);
+      }
+    });
+  });
+}
+
+function createMediaCard(type, url, prompt) {
+  const card = document.createElement('div');
+  card.className = `media-card ${type}-card`;
+
+  if (type === 'image') {
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = prompt || 'Generated image';
+    img.onclick = () => openLightbox(url, 'image', prompt);
+    card.appendChild(img);
+  } else if (type === 'video') {
+    const video = document.createElement('video');
+    video.src = url;
+    video.muted = true;
+    video.loop = true;
+    video.onmouseenter = () => video.play();
+    video.onmouseleave = () => video.pause();
+    video.onclick = () => openLightbox(url, 'video', prompt);
+    card.appendChild(video);
+  }
+
+  const overlay = document.createElement('div');
+  overlay.className = 'media-card-overlay';
+  overlay.innerHTML = `
+    <span class="media-type-badge">${type === 'image' ? '🎨' : '🎬'}</span>
+    <p class="media-prompt">${prompt ? prompt.slice(0, 50) + (prompt.length > 50 ? '...' : '') : ''}</p>
+  `;
+  card.appendChild(overlay);
+
+  return card;
 }
 
 export function renderSessionList(sessions, currentId, onSwitch, onDelete) {
