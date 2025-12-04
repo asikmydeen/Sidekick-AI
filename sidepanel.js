@@ -233,8 +233,12 @@ UI.elements.themeBtn.addEventListener('click', () => {
 // Expand to full page mode
 if (UI.elements.expandBtn) {
   UI.elements.expandBtn.addEventListener('click', () => {
-    // Open the sidepanel.html as a full tab
+    // Open the sidepanel.html as a full tab and close sidebar
     chrome.tabs.create({ url: chrome.runtime.getURL('sidepanel.html') });
+    // Close the sidepanel if we're in a sidebar context
+    if (window.close) {
+      window.close();
+    }
   });
 }
 
