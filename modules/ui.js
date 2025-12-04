@@ -369,7 +369,14 @@ export function appendMessageToDOM(role, content, id = null, isLoading = false) 
            img.src = part.url;
            img.className = 'generated-image';
            img.alt = part.prompt || 'Generated image';
+           img.onclick = () => openLightbox(part.url, 'image', part.prompt);
            container.appendChild(img);
+           // Add expand button for full view
+           const expandBtn = document.createElement('button');
+           expandBtn.className = 'media-btn';
+           expandBtn.textContent = '🔲 Full View';
+           expandBtn.onclick = () => openLightbox(part.url, 'image', part.prompt);
+           container.appendChild(expandBtn);
            // Add download button
            const downloadBtn = document.createElement('button');
            downloadBtn.className = 'media-btn';
