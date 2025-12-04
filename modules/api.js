@@ -298,47 +298,27 @@ export async function* streamChatApi(state, newMsgContent, signal) {
 // ===== HuggingFace Multi-Modal Tasks =====
 
 /**
- * Text-to-Image generation using HuggingFace Inference API
+ * Text-to-Image generation using HuggingFace Inference Client
  * Returns a base64 data URL of the generated image
- * Note: Only models with "Inference API (serverless)" support on HuggingFace work
+ * Uses provider: "auto" for automatic routing to the best provider
  */
 export async function textToImage(model, prompt, apiKey, options = {}) {
-  const url = `https://api-inference.huggingface.co/models/${model}`;
+  const client = new InferenceClient(apiKey);
 
-  const body = {
+  const blob = await client.textToImage({
+    provider: 'auto',
+    model: model,
     inputs: prompt,
     parameters: {
       guidance_scale: options.guidanceScale || 7.5,
-      num_inference_steps: options.steps || 30,
+      num_inference_steps: options.steps || 5,
       width: options.width || 512,
       height: options.height || 512,
       negative_prompt: options.negativePrompt || ''
     }
-  };
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(body)
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    // Check if model is loading
-    if (response.status === 503) {
-      const errorJson = JSON.parse(errorText);
-      if (errorJson.estimated_time) {
-        throw new Error(`Model is loading, please wait ~${Math.ceil(errorJson.estimated_time)}s and try again`);
-      }
-    }
-    throw new Error(`Image generation failed (${response.status}): ${errorText}`);
-  }
-
-  // Response is binary image data
-  const blob = await response.blob();
+  // Convert Blob to base64 data URL
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onloadend = () => resolve(reader.result);
