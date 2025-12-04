@@ -1,7 +1,7 @@
 // modules/api.js
 import { signRequest } from './aws.js';
 import { getCurrentProviderCredentials } from './state.js';
-import { InferenceClient } from 'https://esm.sh/@huggingface/inference@3';
+import { InferenceClient } from '../lib/huggingface-inference.js';
 
 export async function fetchModels(provider, credentials) {
   let url = '';
