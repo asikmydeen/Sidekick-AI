@@ -1,6 +1,6 @@
 // modules/state.js
 
-export const DEFAULT_QUICK_PROMPTS = 
+export const DEFAULT_QUICK_PROMPTS =
 `Summarize|Summarize the key points of the following content:
 Explain|Explain this concept in simple terms:
 Fix Grammar|Please fix the grammar in this text:
@@ -16,6 +16,7 @@ export let state = {
   endpoint: 'http://localhost:11434',
   awsAccessKey: '',
   awsSecretKey: '',
+  awsSessionToken: '',
   awsRegion: 'us-east-1',
   model: '',
   systemPrompt: '',
@@ -24,7 +25,7 @@ export let state = {
   theme: 'light',
   autoRead: false,
   currentSessionId: null,
-  sessions: [] 
+  sessions: []
 };
 
 export async function loadState() {
@@ -49,7 +50,7 @@ export async function loadState() {
     if (!state.quickPrompts) state.quickPrompts = DEFAULT_QUICK_PROMPTS;
     if (!state.endpoint) state.endpoint = 'http://localhost:11434';
     if (!state.awsRegion) state.awsRegion = 'us-east-1';
-    
+
     if (state.sessions.length === 0) {
       createNewSession();
     } else if (!state.currentSessionId || !state.sessions.find(s => s.id === state.currentSessionId)) {

@@ -19,11 +19,11 @@ function toHex(buffer) {
   return Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-export async function signRequest({ method, url, headers, body, accessKey, secretKey, region, service }) {
+export async function signRequest({ method, url, headers, body, accessKey, secretKey, sessionToken, region, service }) {
   const now = new Date();
   const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, '');
   const dateStamp = amzDate.slice(0, 8);
-  
+
   const host = new URL(url).host;
   const canonicalUri = new URL(url).pathname;
   const canonicalQueryString = ""; // Assuming no query params for now
@@ -31,15 +31,20 @@ export async function signRequest({ method, url, headers, body, accessKey, secre
   // Standard headers
   headers['host'] = host;
   headers['x-amz-date'] = amzDate;
-  
+
+  // Add session token if provided
+  if (sessionToken) {
+    headers['x-amz-security-token'] = sessionToken;
+  }
+
   // Canonical Headers
   const sortedHeaderKeys = Object.keys(headers).map(k => k.toLowerCase()).sort();
   const canonicalHeaders = sortedHeaderKeys.map(k => `${k}:${headers[k].trim()}\n`).join('');
   const signedHeaders = sortedHeaderKeys.join(';');
-  
+
   // Payload Hash
   const payloadHash = await sha256(body || '');
-  
+
   // Canonical Request
   const canonicalRequest = [
     method,
@@ -69,6 +74,6 @@ export async function signRequest({ method, url, headers, body, accessKey, secre
 
   // Authorization Header
   const authHeader = `${algorithm} Credential=${accessKey}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
-  
+
   return { ...headers, 'Authorization': authHeader };
 }
