@@ -406,12 +406,14 @@ export async function imageToText(model, imageData, apiKey, options = {}) {
 /**
  * Text-to-Speech using HuggingFace Inference Client
  * Returns a base64 data URL of the generated audio
+ * @param {string} provider - 'auto', 'fal-ai', 'hf-inference', 'replicate', etc.
  */
-export async function textToSpeech(model, text, apiKey) {
+export async function textToSpeech(model, text, apiKey, options = {}) {
   const client = new InferenceClient(apiKey);
+  const provider = options.provider || 'auto';
 
   const blob = await client.textToSpeech({
-    provider: 'auto',
+    provider: provider,
     model: model,
     inputs: text
   });
@@ -428,9 +430,11 @@ export async function textToSpeech(model, text, apiKey) {
 /**
  * Speech-to-Text (ASR) using HuggingFace Inference Client
  * Returns transcribed text
+ * @param {string} provider - 'auto', 'fal-ai', 'hf-inference', 'replicate', etc.
  */
-export async function speechToText(model, audioData, apiKey) {
+export async function speechToText(model, audioData, apiKey, options = {}) {
   const client = new InferenceClient(apiKey);
+  const provider = options.provider || 'auto';
 
   // Convert base64 data URL to Blob if needed
   let audioBlob;
@@ -446,7 +450,7 @@ export async function speechToText(model, audioData, apiKey) {
   }
 
   const result = await client.automaticSpeechRecognition({
-    provider: 'auto',
+    provider: provider,
     model: model,
     data: audioBlob
   });
@@ -458,12 +462,14 @@ export async function speechToText(model, audioData, apiKey) {
  * Text-to-Video generation using HuggingFace Inference Client
  * Returns a base64 data URL of the generated video
  * Note: Video generation can take longer than image generation (30-120s)
+ * @param {string} provider - 'auto', 'fal-ai', 'hf-inference', 'replicate', etc.
  */
 export async function textToVideo(model, prompt, apiKey, options = {}) {
   const client = new InferenceClient(apiKey);
+  const provider = options.provider || 'auto';
 
   const blob = await client.textToVideo({
-    provider: 'auto',
+    provider: provider,
     model: model,
     inputs: prompt,
     parameters: {
