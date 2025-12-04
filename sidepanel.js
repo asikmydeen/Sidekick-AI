@@ -303,8 +303,20 @@ UI.elements.fetchModelsBtn.addEventListener('click', async () => {
     UI.elements.modelSelectionDiv.classList.remove('hidden');
     UI.elements.advancedSettings.classList.remove('hidden');
     UI.elements.startChatBtn.classList.remove('hidden');
+
+    // Save fetched models to provider credentials
+    updateProviderCredentials(provider, { models: models });
   } catch (err) {
     UI.showStatus(`Error: ${err.message}`, 'error');
+  }
+});
+
+// Save selected model when changed
+UI.elements.modelSelect.addEventListener('change', () => {
+  const provider = state.provider;
+  const selectedModel = UI.elements.modelSelect.value;
+  if (provider && selectedModel) {
+    updateProviderCredentials(provider, { selectedModel: selectedModel });
   }
 });
 
