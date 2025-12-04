@@ -6,6 +6,9 @@ export const elements = {
   advancedSettings: document.getElementById('advancedSettings'),
   providerSelect: document.getElementById('provider'),
   apiKeyInput: document.getElementById('apiKey'),
+  apiKeyGroup: document.getElementById('apiKeyGroup'),
+  endpointInput: document.getElementById('endpoint'),
+  endpointGroup: document.getElementById('endpointGroup'),
   fetchModelsBtn: document.getElementById('fetchModelsBtn'),
   fetchStatus: document.getElementById('fetchStatus'),
   modelSelect: document.getElementById('model'),
@@ -23,6 +26,7 @@ export const elements = {
   messageInput: document.getElementById('messageInput'),
   sendBtn: document.getElementById('sendBtn'),
   stopBtn: document.getElementById('stopBtn'),
+  micBtn: document.getElementById('micBtn'),
   includePageContent: document.getElementById('includePageContent'),
   promptChipsContainer: document.getElementById('promptChips')
 };

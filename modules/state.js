@@ -9,6 +9,7 @@ Code Review|Review this code for bugs and improvements:`;
 export let state = {
   provider: '',
   apiKey: '',
+  endpoint: 'http://localhost:11434', // For Ollama or custom endpoints
   model: '',
   systemPrompt: '',
   temperature: 0.7,
@@ -25,6 +26,7 @@ export async function loadState() {
     // Ensure defaults for backward compatibility
     if (state.temperature === undefined) state.temperature = 0.7;
     if (!state.quickPrompts) state.quickPrompts = DEFAULT_QUICK_PROMPTS;
+    if (!state.endpoint) state.endpoint = 'http://localhost:11434';
   }
   return state;
 }

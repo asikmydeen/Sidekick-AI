@@ -1,6 +1,6 @@
 // modules/api.js
 
-export async function fetchModels(provider, key) {
+export async function fetchModels(provider, key, endpoint = '') {
   let url = '';
   let headers = {};
   let transform = (data) => [];
@@ -26,6 +26,14 @@ export async function fetchModels(provider, key) {
 
     case 'anthropic':
       throw new Error('Anthropic API does not support listing models.');
+    
+    case 'ollama':
+      // Remove trailing slash if present
+      const base = endpoint.replace(/\/$/, '');
+      url = `${base}/api/tags`;
+      // Ollama does not require auth headers usually
+      transform = (data) => data.models.map(m => m.name);
+      break;
       
     default:
       throw new Error('Unknown provider');
@@ -42,12 +50,13 @@ export async function fetchModels(provider, key) {
 }
 
 export async function callChatApi(state, userPrompt, signal) {
-  const { provider, apiKey, model, messages, systemPrompt, temperature } = state;
+  const { provider, apiKey, model, messages, systemPrompt, temperature, endpoint } = state;
   let url = '';
   let headers = {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${apiKey}`
+    'Content-Type': 'application/json'
   };
+  if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+  
   let body = {};
 
   // Build History
@@ -84,12 +93,25 @@ export async function callChatApi(state, userPrompt, signal) {
 
     case 'huggingface':
       url = `https://api-inference.huggingface.co/models/${model}`;
-      const fullPrompt = systemPrompt 
+      const fullPromptHF = systemPrompt 
         ? `${systemPrompt}\n\n${apiMessages.map(m => `${m.role}: ${m.content}`).join('\n')}`
         : apiMessages.map(m => `${m.role}: ${m.content}`).join('\n');
       body = { 
-        inputs: fullPrompt, 
+        inputs: fullPromptHF, 
         parameters: { max_new_tokens: 500, return_full_text: false, temperature: temperature } 
+      };
+      break;
+
+    case 'ollama':
+      const base = endpoint ? endpoint.replace(/\/$/, '') : 'http://localhost:11434';
+      url = `${base}/api/chat`;
+      // Ollama expects 'stream: false' for simple request, or we can handle streaming.
+      // For now, let's use stream: false to keep it compatible with our existing architecture.
+      body = {
+        model: model,
+        messages: apiMessages,
+        stream: false,
+        options: { temperature: temperature }
       };
       break;
   }
@@ -110,5 +132,7 @@ export async function callChatApi(state, userPrompt, signal) {
   } else if (provider === 'huggingface') {
     if (Array.isArray(data) && data[0].generated_text) return data[0].generated_text;
     return JSON.stringify(data);
+  } else if (provider === 'ollama') {
+    return data.message.content;
   }
 }

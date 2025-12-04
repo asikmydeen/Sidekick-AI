@@ -49,3 +49,9 @@
 - Refactored `popup.js` into modular ES6 components (`modules/api.js`, `modules/ui.js`, `modules/state.js`, etc.)
 - Improved maintainability by separating UI logic, state management, and API calls
 - Updated `popup.html` to support module-based script loading
+
+## v1.8.0 – 2025-08-25
+- Added **Ollama Support**: Users can now connect to local LLM instances (defaulting to localhost:11434).
+- Added **Voice Input**: Added a microphone button in the chat interface that uses browser speech recognition to transcribe text.
+- Updated `modules/api.js` to handle Ollama API endpoints (`/api/tags` and `/api/chat`).
+- Updated UI to dynamically toggle between API Key and Endpoint fields based on the selected provider.

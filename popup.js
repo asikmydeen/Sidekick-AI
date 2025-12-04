@@ -10,6 +10,7 @@ initMock();
 
 // AbortController for stopping generation
 let abortController = null;
+let recognition = null; // Speech Recognition instance
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Load State
@@ -18,8 +19,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize UI with loaded state
   UI.applyTheme(state.theme);
   
-  if (state.provider) UI.elements.providerSelect.value = state.provider;
+  if (state.provider) {
+    UI.elements.providerSelect.value = state.provider;
+    handleProviderChange(state.provider);
+  }
   if (state.apiKey) UI.elements.apiKeyInput.value = state.apiKey;
+  if (state.endpoint) UI.elements.endpointInput.value = state.endpoint;
   if (state.systemPrompt) UI.elements.systemPromptInput.value = state.systemPrompt;
   if (state.temperature) {
     UI.elements.temperatureInput.value = state.temperature;
@@ -42,6 +47,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // --- Event Listeners ---
+
+// Provider Change Logic
+UI.elements.providerSelect.addEventListener('change', (e) => {
+  handleProviderChange(e.target.value);
+});
+
+function handleProviderChange(provider) {
+  if (provider === 'ollama') {
+    UI.elements.apiKeyGroup.classList.add('hidden');
+    UI.elements.endpointGroup.classList.remove('hidden');
+  } else {
+    UI.elements.apiKeyGroup.classList.remove('hidden');
+    UI.elements.endpointGroup.classList.add('hidden');
+  }
+}
 
 // Theme
 UI.elements.themeBtn.addEventListener('click', () => {
@@ -109,13 +129,20 @@ UI.elements.exportBtn.addEventListener('click', () => {
 UI.elements.fetchModelsBtn.addEventListener('click', async () => {
   const provider = UI.elements.providerSelect.value;
   const key = UI.elements.apiKeyInput.value.trim();
+  const endpoint = UI.elements.endpointInput.value.trim();
 
-  if (!provider || !key) {
-    UI.showStatus('Please select a provider and enter an API key.', 'error');
+  if (!provider) {
+    UI.showStatus('Please select a provider.', 'error');
     return;
   }
 
-  updateState({ provider, apiKey: key });
+  // Validate inputs based on provider
+  if (provider !== 'ollama' && !key) {
+    UI.showStatus('Please enter an API key.', 'error');
+    return;
+  }
+
+  updateState({ provider, apiKey: key, endpoint });
 
   UI.showStatus('Fetching models...', 'info');
   UI.elements.modelSelectionDiv.classList.add('hidden');
@@ -124,7 +151,7 @@ UI.elements.fetchModelsBtn.addEventListener('click', async () => {
   UI.elements.modelSelect.innerHTML = '<option value="" disabled selected>Select a model...</option>';
 
   try {
-    const models = await API.fetchModels(provider, key);
+    const models = await API.fetchModels(provider, key, endpoint);
     if (models.length === 0) throw new Error('No models found.');
     
     UI.populateModelSelect(models);
@@ -170,7 +197,6 @@ UI.elements.stopBtn.addEventListener('click', () => {
     abortController.abort();
     abortController = null;
     
-    // Find loading dots and replace with stopped message
     const loadingDots = document.querySelector('.typing-dots');
     if (loadingDots) {
       const wrapper = loadingDots.closest('.message');
@@ -180,6 +206,70 @@ UI.elements.stopBtn.addEventListener('click', () => {
     UI.toggleLoading(false);
   }
 });
+
+// Voice Input Logic
+UI.elements.micBtn.addEventListener('click', () => {
+  if (!('webkitSpeechRecognition' in window)) {
+    alert('Voice input is not supported in this browser.');
+    return;
+  }
+
+  if (recognition) {
+    // Stop recording if already active
+    recognition.stop();
+    return; // Event listeners will handle the UI reset
+  }
+
+  recognition = new webkitSpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+
+  recognition.onstart = () => {
+    UI.elements.micBtn.classList.add('listening');
+    UI.elements.messageInput.placeholder = "Listening...";
+  };
+
+  recognition.onresult = (event) => {
+    let transcript = '';
+    for (let i = event.resultIndex; i < event.results.length; ++i) {
+      transcript += event.results[i][0].transcript;
+    }
+    // Update input field
+    const currentText = UI.elements.messageInput.value;
+    // Simple logic: if interim, just show it. If we want better ux, we can append.
+    // For now, let's just replace or append.
+    // Actually, common pattern: append to existing text
+    
+    // Note: Since interim results trigger repeatedly, we need to be careful not to duplicate.
+    // A simpler approach for this demo: replace input value with the transcript if it's just voice.
+    // Or just setting the value directly.
+    
+    // Let's just set the value to what is heard for now (replacing partial interim).
+    // UX improvement: Store previous text before recording? 
+    // Simplified: Just set the value to the transcript.
+    UI.elements.messageInput.value = transcript;
+    UI.autoResizeInput();
+  };
+
+  recognition.onerror = (event) => {
+    console.error('Speech recognition error', event.error);
+    UI.elements.micBtn.classList.remove('listening');
+    recognition = null;
+    UI.elements.messageInput.placeholder = "Type your message...";
+  };
+
+  recognition.onend = () => {
+    UI.elements.micBtn.classList.remove('listening');
+    recognition = null;
+    UI.elements.messageInput.placeholder = "Type your message...";
+    // Focus back on input so they can edit or send
+    UI.elements.messageInput.focus();
+  };
+
+  recognition.start();
+});
+
 
 // Copy Code Buttons
 UI.elements.chatHistory.addEventListener('click', (e) => {

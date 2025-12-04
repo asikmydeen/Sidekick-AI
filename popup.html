@@ -28,12 +28,20 @@
           <option value="openrouter">OpenRouter</option>
           <option value="huggingface">Hugging Face</option>
           <option value="anthropic">Anthropic</option>
+          <option value="ollama">Ollama (Local)</option>
         </select>
       </div>
 
-      <div class="form-group">
-        <label for="apiKey">API Key</label>
+      <div class="form-group" id="apiKeyGroup">
+        <label for="apiKey">API Key <span id="apiKeyLabelDetail"></span></label>
         <input type="password" id="apiKey" placeholder="sk-..." />
+      </div>
+      
+      <!-- Special input for Ollama URL -->
+      <div class="form-group hidden" id="endpointGroup">
+        <label for="endpoint">Ollama URL</label>
+        <input type="text" id="endpoint" value="http://localhost:11434" placeholder="http://localhost:11434" />
+        <div style="font-size: 10px; color: #666; margin-top: 4px;">Ensure Ollama is running with `OLLAMA_ORIGINS="*"`</div>
       </div>
 
       <button id="fetchModelsBtn" class="primary-btn">Connect & Fetch Models</button>
@@ -86,6 +94,7 @@
         </div>
         <div class="chat-input-area">
           <textarea id="messageInput" placeholder="Type your message..." rows="1"></textarea>
+          <button id="micBtn" class="icon-btn mic-btn" title="Voice Input">🎤</button>
           <button id="sendBtn" class="send-btn">➤</button>
           <button id="stopBtn" class="send-btn stop-btn hidden">⏹</button>
         </div>
