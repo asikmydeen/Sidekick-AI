@@ -299,15 +299,26 @@ export async function* streamChatApi(state, newMsgContent, signal) {
 /**
  * Text-to-Image generation using HuggingFace Inference
  * Returns a base64 data URL of the generated image
+ * Supports third-party providers (fal-ai, replicate, etc.)
  */
 export async function textToImage(model, prompt, apiKey, options = {}) {
-  const url = `https://router.huggingface.co/hf-inference/models/${model}`;
+  // Determine if model needs a third-party provider
+  const providerMap = {
+    'Tongyi-MAI/Z-Image-Turbo': 'fal-ai',
+    'black-forest-labs/FLUX.1-dev': 'fal-ai',
+    'black-forest-labs/FLUX.1-schnell': 'fal-ai',
+    'fal/AuraFlow': 'fal-ai',
+    'fal/flux-pro': 'fal-ai'
+  };
+
+  const provider = options.provider || providerMap[model] || 'hf-inference';
+  const url = `https://router.huggingface.co/${provider}/models/${model}`;
 
   const body = {
     inputs: prompt,
     parameters: {
       guidance_scale: options.guidanceScale || 7.5,
-      num_inference_steps: options.steps || 30,
+      num_inference_steps: options.steps || (provider === 'fal-ai' ? 5 : 30),
       width: options.width || 512,
       height: options.height || 512,
       negative_prompt: options.negativePrompt || ''
