@@ -422,7 +422,7 @@ export async function textToSpeech(model, text, apiKey) {
  * Returns transcribed text
  */
 export async function speechToText(model, audioData, apiKey) {
-  const url = `https://router.huggingface.co/hf-inference/models/${model}`;
+  const url = `https://api-inference.huggingface.co/models/${model}`;
 
   // If audioData is a base64 data URL, extract the binary
   let binaryData;
