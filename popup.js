@@ -12,6 +12,7 @@ initMock();
 
 let abortController = null;
 let recognition = null;
+let pendingAttachments = []; // Stores { type: 'image_url', base64: '...' }
 
 document.addEventListener('DOMContentLoaded', async () => {
   await loadState();
@@ -121,10 +122,17 @@ function handleDeleteSession(id) {
 
 UI.elements.exportBtn.addEventListener('click', () => {
   const session = getCurrentSession();
-  if (!session || session.messages.length ===0) return alert('No history to export.');
+  if (!session || session.messages.length === 0) return alert('No history to export.');
   
   let md = `# ${session.title}\n\n`;
-  session.messages.forEach(msg => md += `### ${msg.role}\n${msg.content}\n\n`);
+  session.messages.forEach(msg => {
+    if (Array.isArray(msg.content)) {
+       const txt = msg.content.find(c => c.type === 'text')?.text || '';
+       md += `### ${msg.role}\n${txt}\n[Image Attached]\n\n`;
+    } else {
+       md += `### ${msg.role}\n${msg.content}\n\n`;
+    }
+  });
   
   const blob = new Blob([md], { type: 'text/markdown' });
   const url = URL.createObjectURL(blob);
@@ -141,29 +149,37 @@ UI.elements.fileInput.addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if (!file) return;
 
-  // Block multimedia files
-  if (file.type.startsWith('image/') || file.type.startsWith('video/') || file.type.startsWith('audio/')) {
-    alert('Multimedia files are not currently supported. Please upload text-based files (code, markdown, txt, etc).');
+  // Handle Images
+  if (file.type.startsWith('image/')) {
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const base64 = evt.target.result;
+      pendingAttachments.push({ type: 'image_url', base64: base64 });
+      UI.renderAttachments(pendingAttachments, (index) => {
+        pendingAttachments.splice(index, 1);
+        UI.renderAttachments(pendingAttachments, () => {});
+      });
+    };
+    reader.readAsDataURL(file);
     e.target.value = '';
     return;
   }
   
+  // Handle Text Files
   try {
     const text = await readFileAsText(file);
-    
-    // Simple heuristic check for binary content
+    // Binary check
     if (/[\x00-\x08\x0E-\x1F]/.test(text)) {
       throw new Error("File content appears to be binary.");
     }
-
     const context = `\n\n[File Attachment: ${file.name}]\n\`\`\`\n${text}\n\`\`\``;
     UI.elements.messageInput.value += context;
     UI.autoResizeInput();
   } catch (err) {
-    alert('Failed to read file. It may be binary or an unsupported format.');
+    alert('Failed to read file. Please upload images or text files.');
     console.error(err);
   }
-  e.target.value = ''; // Reset
+  e.target.value = ''; 
 });
 
 // API Connection
@@ -252,7 +268,7 @@ function switchToChat() {
 
 async function sendMessage() {
   const text = UI.elements.messageInput.value.trim();
-  if (!text) return;
+  if (!text && pendingAttachments.length === 0) return;
 
   const session = getCurrentSession();
   if (!session) return;
@@ -267,14 +283,33 @@ async function sendMessage() {
     if (pageText) finalText += `\n\n[Page Content]:\n${pageText}`;
   }
 
+  // Construct Message Content
+  // If we have images, content becomes array: [{ type: 'text', text: ... }, { type: 'image_url', ... }]
+  // If text only, content is string
+  let messageContent;
+  
+  if (pendingAttachments.length > 0) {
+    messageContent = [];
+    if (finalText) messageContent.push({ type: 'text', text: finalText });
+    pendingAttachments.forEach(att => {
+      messageContent.push({ type: 'image_url', image_url: { url: att.base64 } });
+    });
+  } else {
+    messageContent = finalText;
+  }
+
   // Update Local State
-  session.messages.push({ role: 'user', content: finalText });
+  session.messages.push({ role: 'user', content: messageContent });
   updateCurrentSession(session.messages);
   
-  UI.appendMessageToDOM('user', finalText);
+  UI.appendMessageToDOM('user', messageContent);
   UI.elements.messageInput.value = '';
   UI.elements.includePageContent.checked = false;
   UI.autoResizeInput();
+  
+  // Clear attachments
+  pendingAttachments = [];
+  UI.renderAttachments([], () => {});
 
   // Create Bot Message Placeholder
   const msgId = 'msg-' + Date.now();
@@ -284,7 +319,7 @@ async function sendMessage() {
   let fullResponse = "";
 
   try {
-    const stream = API.streamChatApi(state, finalText, abortController.signal);
+    const stream = API.streamChatApi(state, messageContent, abortController.signal);
     
     // Process Stream
     for await (const chunk of stream) {
@@ -302,7 +337,6 @@ async function sendMessage() {
       UI.removeMessage(msgId);
       UI.appendMessageToDOM('error', `Error: ${err.message}`);
     } else {
-      // If aborted, save what we have
       if (fullResponse) {
         session.messages.push({ role: 'assistant', content: fullResponse });
         updateCurrentSession(session.messages);

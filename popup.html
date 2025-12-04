@@ -96,6 +96,7 @@
       
       <div class="chat-input-wrapper">
         <div id="promptChips" class="prompt-chips"></div>
+        <div id="attachmentPreview" class="attachment-preview"></div>
         
         <div class="chat-controls">
            <span id="tokenCount" class="token-count">0 tokens</span>
@@ -106,8 +107,9 @@
         </div>
         
         <div class="chat-input-area">
-          <input type="file" id="fileInput" class="hidden" accept=".txt,.md,.js,.py,.html,.css,.json,.csv,.ts,.tsx,.java,.c,.cpp" />
-          <button id="fileBtn" class="icon-btn file-btn" title="Attach Text File">📎</button>
+          <!-- Updated Accept attribute to include images -->
+          <input type="file" id="fileInput" class="hidden" accept="image/*, .txt, .md, .js, .py, .html, .css, .json, .csv, .ts, .tsx, .java, .c, .cpp" />
+          <button id="fileBtn" class="icon-btn file-btn" title="Attach File/Image">📎</button>
           
           <textarea id="messageInput" placeholder="Type your message..." rows="1"></textarea>
           

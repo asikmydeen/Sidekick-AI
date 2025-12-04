@@ -41,7 +41,7 @@ export async function fetchModels(provider, key, endpoint = '') {
 }
 
 // Stream generator function
-export async function* streamChatApi(state, userPrompt, signal) {
+export async function* streamChatApi(state, newMsgContent, signal) {
   const { provider, apiKey, model, temperature, endpoint, systemPrompt } = state;
   const messages = state.sessions.find(s => s.id === state.currentSessionId)?.messages || [];
   
@@ -49,47 +49,72 @@ export async function* streamChatApi(state, userPrompt, signal) {
   let headers = { 'Content-Type': 'application/json' };
   if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
   
-  let body = {};
+  // We need to transform the internal message history (which might contain complex vision objects)
+  // into the format specific for each provider.
   
-  const apiMessages = messages.map(m => ({ role: m.role, content: m.content }));
-  // Messages already include the user prompt in state before this call? 
-  // Wait, in popup.js we usually push user msg to state THEN call api. 
-  // So apiMessages HAS the user prompt at the end. We don't need to append it again unless it's not in state yet.
-  // Current logic in previous version was: prompt passed as arg.
-  // Let's rely on the arg 'userPrompt' being the last content if it's not in history yet?
-  // Actually, standard is: History + New Prompt.
+  // Standardize History:
+  // Internal format is OpenAI compatible: [{ role, content: string | [{type:'text'}, {type:'image_url'}] }]
   
-  // Clean history:
-  const history = apiMessages.map(m => ({ role: m.role, content: m.content }));
-  if (systemPrompt) history.unshift({ role: 'system', content: systemPrompt });
-
+  const history = [];
+  if (systemPrompt) history.push({ role: 'system', content: systemPrompt });
+  
+  // Clone messages to avoid mutating state
+  const rawMessages = messages.map(m => ({ role: m.role, content: m.content }));
+  
+  // The 'messages' array passed here INCLUDES the latest user message which was just added in popup.js
+  
   switch (provider) {
     case 'openai':
     case 'openrouter':
       url = provider === 'openai' ? 'https://api.openai.com/v1/chat/completions' : 'https://openrouter.ai/api/v1/chat/completions';
-      body = { model, messages: history, temperature, stream: true };
+      // OpenAI/OpenRouter handle the array of content objects natively.
+      history.push(...rawMessages);
       break;
 
     case 'ollama':
       const base = endpoint ? endpoint.replace(/\/$/, '') : 'http://localhost:11434';
       url = `${base}/api/chat`;
-      body = { model, messages: history, options: { temperature }, stream: true };
+      
+      // Ollama expects: { role, content: string, images: [base64] }
+      // We must transform the internal "Vision" format to Ollama format
+      const ollamaMessages = rawMessages.map(msg => {
+        if (Array.isArray(msg.content)) {
+          let text = "";
+          let images = [];
+          msg.content.forEach(part => {
+            if (part.type === 'text') text += part.text;
+            if (part.type === 'image_url') {
+               // Internal format: "data:image/png;base64,..."
+               // Ollama wants JUST the base64 part
+               const b64 = part.image_url.url.split(',')[1];
+               if (b64) images.push(b64);
+            }
+          });
+          return { role: msg.role, content: text, images: images.length ? images : undefined };
+        }
+        return msg;
+      });
+      
+      history.push(...ollamaMessages);
       break;
       
     case 'anthropic':
-      // Anthropic streaming is different (SSE events). 
-      // For simplicity in this iteration, we'll do non-streaming for Anthropic 
-      // OR implement a specific parser. Let's do non-streaming fallback for Anthropic first 
-      // to ensure stability, or basic stream if easy.
-      // Let's do standard fetch for Anthropic for now to avoid complexity explosion.
+      // Anthropic format support if needed (skip for now to keep simple)
       url = 'https://api.anthropic.com/v1/messages';
       headers['x-api-key'] = apiKey;
       headers['anthropic-version'] = '2023-06-01';
       delete headers['Authorization'];
-      body = {
+      
+      // Simplify for Anthropic (drop images for now or implement their specific format later)
+      const simpleMessages = rawMessages.map(m => ({
+         role: m.role,
+         content: Array.isArray(m.content) ? m.content.find(c => c.type==='text')?.text || '' : m.content
+      }));
+      
+      const body = {
         model, max_tokens: 1024, temperature,
         system: systemPrompt || undefined,
-        messages: history.filter(m => m.role !== 'system')
+        messages: simpleMessages
       };
       
       const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal });
@@ -99,19 +124,26 @@ export async function* streamChatApi(state, userPrompt, signal) {
       return;
       
     case 'huggingface':
-       // HF streaming is also specific. Fallback to non-stream.
+       // HF fallback (text only)
        url = `https://api-inference.huggingface.co/models/${model}`;
-       const fullPrompt = history.map(m => `${m.role}: ${m.content}`).join('\n');
-       body = { inputs: fullPrompt, parameters: { max_new_tokens: 500, return_full_text: false, temperature } };
+       const fullPrompt = rawMessages.map(m => {
+          const txt = Array.isArray(m.content) ? m.content.find(c=>c.type==='text')?.text : m.content;
+          return `${m.role}: ${txt}`;
+       }).join('\n');
        
-       const hfRes = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal });
+       const hfBody = { inputs: fullPrompt, parameters: { max_new_tokens: 500, return_full_text: false, temperature } };
+       const hfRes = await fetch(url, { method: 'POST', headers, body: JSON.stringify(hfBody), signal });
        const hfData = await hfRes.json();
        yield Array.isArray(hfData) ? hfData[0].generated_text : JSON.stringify(hfData);
        return;
   }
 
   // Handle Streaming for OpenAI/OpenRouter/Ollama
-  const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal });
+  const finalBody = { model, messages: history, stream: true };
+  if (provider === 'ollama') finalBody.options = { temperature };
+  else finalBody.temperature = temperature;
+
+  const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(finalBody), signal });
   
   if (!response.ok) {
     throw new Error(await response.text());

@@ -40,7 +40,9 @@ export const elements = {
   fileInput: document.getElementById('fileInput'),
   includePageContent: document.getElementById('includePageContent'),
   promptChipsContainer: document.getElementById('promptChips'),
-  tokenCount: document.getElementById('tokenCount')
+  tokenCount: document.getElementById('tokenCount'),
+  // Images
+  attachmentPreview: document.getElementById('attachmentPreview')
 };
 
 export function applyTheme(theme) {
@@ -90,9 +92,12 @@ export function renderSessionList(sessions, currentId, onSwitch, onDelete) {
     const item = document.createElement('div');
     item.className = `session-item ${session.id === currentId ? 'active' : ''}`;
     
+    // Determine title from first message content (text part)
+    let displayTitle = session.title || 'New Chat';
+    
     const title = document.createElement('span');
     title.className = 'session-title';
-    title.textContent = session.title || 'New Chat';
+    title.textContent = displayTitle;
     title.onclick = () => onSwitch(session.id);
     
     const delBtn = document.createElement('button');
@@ -152,7 +157,8 @@ export function renderChat(messages, modelName) {
   updateTokenCount(messages);
 }
 
-export function appendMessageToDOM(role, text, id = null, isLoading = false) {
+// Updated to handle array content (Multimodal)
+export function appendMessageToDOM(role, content, id = null, isLoading = false) {
   const div = document.createElement('div');
   div.className = `message ${role}`;
   if (id) div.id = id;
@@ -160,8 +166,24 @@ export function appendMessageToDOM(role, text, id = null, isLoading = false) {
   if (isLoading) {
     div.innerHTML = `<div class="typing-dots"><span></span><span></span><span></span></div>`;
   } else {
-    // If text is null (streaming start), leave empty
-    if (text) div.innerHTML = parseMarkdown(text);
+    if (Array.isArray(content)) {
+      // Handle multimodal (text + images)
+      content.forEach(part => {
+        if (part.type === 'text') {
+           const p = document.createElement('div');
+           p.innerHTML = parseMarkdown(part.text);
+           div.appendChild(p);
+        } else if (part.type === 'image_url') {
+           const img = document.createElement('img');
+           img.src = part.image_url.url;
+           img.className = 'chat-image';
+           div.appendChild(img);
+        }
+      });
+    } else {
+      // Legacy string format
+      if (content) div.innerHTML = parseMarkdown(content);
+    }
   }
   
   elements.chatHistory.appendChild(div);
@@ -171,9 +193,6 @@ export function appendMessageToDOM(role, text, id = null, isLoading = false) {
 export function updateStreamingMessage(id, text) {
   const el = document.getElementById(id);
   if (el) {
-    // We re-parse markdown on every chunk (expensive but easiest for simple implementation)
-    // Optimization: only parse if markdown syntax detected, or debounce. 
-    // For this size, it's fine.
     el.innerHTML = parseMarkdown(text);
     scrollToBottom();
   }
@@ -181,9 +200,17 @@ export function updateStreamingMessage(id, text) {
 
 export function updateTokenCount(messages) {
   let totalTxt = "";
-  messages.forEach(m => totalTxt += m.content);
+  messages.forEach(m => {
+    if (typeof m.content === 'string') totalTxt += m.content;
+    else if (Array.isArray(m.content)) {
+      m.content.forEach(c => {
+         if (c.type === 'text') totalTxt += c.text;
+         // Very rough estimate for images: 1000 tokens
+         if (c.type === 'image_url') totalTxt += " ".repeat(4000); 
+      });
+    }
+  });
   const count = estimateTokens(totalTxt);
-  // Assume generic 128k context for modern models, or 8k conservative
   const limit = 128000; 
   const percent = Math.min((count / limit) * 100, 100).toFixed(1);
   elements.tokenCount.textContent = `${count.toLocaleString()} tokens used`;
@@ -219,7 +246,27 @@ export function autoResizeInput() {
   if (input.value === '') input.style.height = '';
 }
 
-// Markdown Parser (same as before)
+export function renderAttachments(attachments, onRemove) {
+  elements.attachmentPreview.innerHTML = '';
+  attachments.forEach((att, index) => {
+    const thumb = document.createElement('div');
+    thumb.className = 'preview-thumb';
+    
+    const img = document.createElement('img');
+    img.src = att.base64;
+    
+    const btn = document.createElement('button');
+    btn.className = 'remove-btn';
+    btn.textContent = '×';
+    btn.onclick = () => onRemove(index);
+    
+    thumb.appendChild(img);
+    thumb.appendChild(btn);
+    elements.attachmentPreview.appendChild(thumb);
+  });
+}
+
+// Markdown Parser
 function parseMarkdown(text) {
   if (!text) return '';
   let safeText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");

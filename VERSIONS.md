@@ -66,3 +66,8 @@
 ## v1.9.1 – 2025-08-25
 - **Bug Fix**: Restricted file attachments to text-based formats only.
 - Added validation to prevent image/binary files from being read as raw text, which previously caused garbage characters to appear in the chat input.
+
+## v1.9.2 – 2025-08-25
+- **Multimedia Support**: Added full support for image attachments (Vision) via OpenAI, OpenRouter, and Ollama.
+- **UI Updates**: Added image preview thumbnails in the input area and chat history.
+- **API Logic**: Updated API handler to format messages as standard JSON content arrays for Vision models.
