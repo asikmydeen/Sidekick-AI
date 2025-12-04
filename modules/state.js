@@ -61,6 +61,13 @@ export const HF_TASK_MODELS = {
     'stabilityai/stable-diffusion-xl-base-1.0',
     'runwayml/stable-diffusion-v1-5'
   ],
+  'image-to-image': [
+    'black-forest-labs/FLUX.1-dev',
+    'black-forest-labs/FLUX.1-schnell',
+    'stabilityai/stable-diffusion-xl-refiner-1.0',
+    'timbrooks/instruct-pix2pix',
+    'lllyasviel/sd-controlnet-canny'
+  ],
   'image-to-text': [
     'Salesforce/blip-image-captioning-large',
     'Salesforce/blip-image-captioning-base',
