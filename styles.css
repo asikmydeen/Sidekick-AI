@@ -1173,16 +1173,24 @@ body.full-page-mode .chip {
 }
 
 body.full-page-mode .send-btn {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   font-size: 18px;
 }
 
+body.full-page-mode .chat-controls {
+  padding: 10px 20px;
+}
+
 /* Config view in full-page mode */
-body.full-page-mode .config-view {
-  max-width: 800px;
+body.full-page-mode #configSection {
+  max-width: 600px;
   margin: 40px auto;
-  padding: 30px;
+  padding: 40px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-lg);
 }
 
 body.full-page-mode .config-view h2 {
@@ -1203,18 +1211,34 @@ body.full-page-mode .config-group select,
 body.full-page-mode .config-group input,
 body.full-page-mode .config-group textarea {
   font-size: 15px;
-  padding: 12px 14px;
+  padding: 14px 16px;
 }
 
 /* Full-page sidebar */
 body.full-page-mode .sidebar {
-  max-width: 350px;
-  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+  max-width: 380px;
+  box-shadow: var(--shadow-xl);
+  border-right: none;
+}
+
+body.full-page-mode .sidebar-header {
+  padding: 24px;
+  background: var(--primary-gradient);
+}
+
+body.full-page-mode .sidebar-header h2 {
+  color: white;
+  font-size: 16px;
+}
+
+body.full-page-mode .sidebar-header .icon-btn {
+  color: white;
 }
 
 body.full-page-mode .session-item {
-  padding: 14px 16px;
+  padding: 16px 18px;
   font-size: 14px;
+  margin-bottom: 8px;
 }
 
 /* Media Gallery */
