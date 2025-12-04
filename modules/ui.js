@@ -7,10 +7,18 @@ export const elements = {
   chatSection: document.getElementById('chatSection'),
   advancedSettings: document.getElementById('advancedSettings'),
   providerSelect: document.getElementById('provider'),
+  
   apiKeyInput: document.getElementById('apiKey'),
   apiKeyGroup: document.getElementById('apiKeyGroup'),
+  
   endpointInput: document.getElementById('endpoint'),
   endpointGroup: document.getElementById('endpointGroup'),
+  
+  awsGroup: document.getElementById('awsGroup'),
+  awsAccessKey: document.getElementById('awsAccessKey'),
+  awsSecretKey: document.getElementById('awsSecretKey'),
+  awsRegion: document.getElementById('awsRegion'),
+  
   fetchModelsBtn: document.getElementById('fetchModelsBtn'),
   fetchStatus: document.getElementById('fetchStatus'),
   modelSelect: document.getElementById('model'),
@@ -22,7 +30,7 @@ export const elements = {
   autoReadInput: document.getElementById('autoRead'),
   startChatBtn: document.getElementById('startChatBtn'),
   settingsBtn: document.getElementById('settingsBtn'),
-  // New UI Elements
+  
   historyBtn: document.getElementById('historyBtn'),
   newChatBtn: document.getElementById('newChatBtn'),
   historySidebar: document.getElementById('historySidebar'),
@@ -42,7 +50,6 @@ export const elements = {
   includePageContent: document.getElementById('includePageContent'),
   promptChipsContainer: document.getElementById('promptChips'),
   tokenCount: document.getElementById('tokenCount'),
-  // Images
   attachmentPreview: document.getElementById('attachmentPreview')
 };
 
@@ -92,8 +99,6 @@ export function renderSessionList(sessions, currentId, onSwitch, onDelete) {
   sessions.forEach(session => {
     const item = document.createElement('div');
     item.className = `session-item ${session.id === currentId ? 'active' : ''}`;
-    
-    // Determine title from first message content (text part)
     let displayTitle = session.title || 'New Chat';
     
     const title = document.createElement('span');
@@ -158,13 +163,11 @@ export function renderChat(messages, modelName) {
   updateTokenCount(messages);
 }
 
-// Updated to handle array content (Multimodal) and TTS
 export function appendMessageToDOM(role, content, id = null, isLoading = false) {
   const div = document.createElement('div');
   div.className = `message ${role}`;
   if (id) div.id = id;
   
-  // Extract text content for TTS later
   let textContent = "";
   if (typeof content === 'string') textContent = content;
   else if (Array.isArray(content)) {
@@ -174,7 +177,6 @@ export function appendMessageToDOM(role, content, id = null, isLoading = false) 
   if (isLoading) {
     div.innerHTML = `<div class="typing-dots"><span></span><span></span><span></span></div>`;
   } else {
-    // Content rendering
     if (Array.isArray(content)) {
       content.forEach(part => {
         if (part.type === 'text') {
@@ -192,7 +194,6 @@ export function appendMessageToDOM(role, content, id = null, isLoading = false) 
       if (content) div.innerHTML = parseMarkdown(content);
     }
     
-    // Add Speaker button for assistant
     if (role === 'assistant' && textContent) {
       const controls = document.createElement('div');
       controls.className = 'msg-controls';
@@ -210,7 +211,6 @@ export function appendMessageToDOM(role, content, id = null, isLoading = false) 
   
   elements.chatHistory.appendChild(div);
   
-  // Re-attach event listeners for copy buttons since innerHTML wiped them
   div.querySelectorAll('.copy-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const code = e.target.parentElement.querySelector('code').textContent;
@@ -231,21 +231,15 @@ export function appendMessageToDOM(role, content, id = null, isLoading = false) 
 export function updateStreamingMessage(id, text) {
   const el = document.getElementById(id);
   if (el) {
-    // We only update the content, preserving the wrapper if we can, but 
-    // simply re-parsing markdown is safest for streaming partial HTML
-    // Note: Streaming doesn't add the speak button until finished (in renderChat or final update)
-    // To keep it simple, we just update HTML. The speak button is added when the message is "finished" in logic.
     el.innerHTML = parseMarkdown(text);
     scrollToBottom();
   }
 }
 
 export function finalizeMessageInDOM(id, content) {
-  // Re-render the message completely to add buttons correctly
   const el = document.getElementById(id);
   if (el) {
-    el.innerHTML = ''; // Clear
-    // We manually rebuild inside the existing div to avoid scroll jumps or losing ID
+    el.innerHTML = ''; 
     let textContent = "";
     if (typeof content === 'string') textContent = content;
     
@@ -265,7 +259,6 @@ export function finalizeMessageInDOM(id, content) {
     controls.appendChild(speakBtn);
     el.appendChild(controls);
 
-    // Attach copy listeners
     el.querySelectorAll('.copy-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const code = e.target.parentElement.querySelector('code').textContent;
@@ -284,7 +277,6 @@ export function finalizeMessageInDOM(id, content) {
   }
 }
 
-// Text to Speech
 function toggleSpeech(text, btn) {
   if (window.speechSynthesis.speaking) {
     window.speechSynthesis.cancel();
@@ -294,16 +286,12 @@ function toggleSpeech(text, btn) {
     });
     return;
   }
-  
   speakText(text, btn);
 }
 
 export function speakText(text, btn = null) {
-  window.speechSynthesis.cancel(); // Stop previous
-  
-  // Strip markdown for cleaner reading
+  window.speechSynthesis.cancel(); 
   const cleanText = text.replace(/[*#`_\[\]]/g, '');
-  
   const utterance = new SpeechSynthesisUtterance(cleanText);
   utterance.lang = 'en-US';
   utterance.rate = 1.0;
@@ -403,7 +391,6 @@ export function renderAttachments(attachments, onRemove) {
   });
 }
 
-// Markdown Parser
 function parseMarkdown(text) {
   if (!text) return '';
   let safeText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");

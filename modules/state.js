@@ -14,20 +14,23 @@ export let state = {
   provider: '',
   apiKey: '',
   endpoint: 'http://localhost:11434',
+  awsAccessKey: '',
+  awsSecretKey: '',
+  awsRegion: 'us-east-1',
   model: '',
   systemPrompt: '',
   temperature: 0.7,
   quickPrompts: DEFAULT_QUICK_PROMPTS,
   theme: 'light',
-  autoRead: false, // New TTS setting
+  autoRead: false,
   currentSessionId: null,
-  sessions: [] // Array of { id, title, messages, lastModified }
+  sessions: [] 
 };
 
 export async function loadState() {
   const stored = await chrome.storage.local.get(['chatState']);
   if (stored.chatState) {
-    // Migration logic for old state (single message array)
+    // Migration logic for old state
     if (stored.chatState.messages && !stored.chatState.sessions) {
       const legacySession = {
         id: createId(),
@@ -36,18 +39,17 @@ export async function loadState() {
         lastModified: Date.now()
       };
       state = { ...state, ...stored.chatState, sessions: [legacySession], currentSessionId: legacySession.id };
-      delete state.messages; // Clean up old key
+      delete state.messages;
     } else {
       state = { ...state, ...stored.chatState };
     }
 
-    // Defaults
     if (state.temperature === undefined) state.temperature = 0.7;
     if (state.autoRead === undefined) state.autoRead = false;
     if (!state.quickPrompts) state.quickPrompts = DEFAULT_QUICK_PROMPTS;
     if (!state.endpoint) state.endpoint = 'http://localhost:11434';
+    if (!state.awsRegion) state.awsRegion = 'us-east-1';
     
-    // Ensure we have a valid session
     if (state.sessions.length === 0) {
       createNewSession();
     } else if (!state.currentSessionId || !state.sessions.find(s => s.id === state.currentSessionId)) {
@@ -90,11 +92,9 @@ export function updateCurrentSession(messages) {
   if (session) {
     session.messages = messages;
     session.lastModified = Date.now();
-    // Auto-title based on first user message if title is still default
     if (session.title === 'New Chat' && messages.length > 0) {
       const firstUserMsg = messages.find(m => m.role === 'user');
       if (firstUserMsg) {
-        // Extract text if array
         let txt = firstUserMsg.content;
         if (Array.isArray(txt)) txt = txt.find(p => p.type === 'text')?.text || "Image";
         session.title = txt.slice(0, 30) + (txt.length > 30 ? '...' : '');
