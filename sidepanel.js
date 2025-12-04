@@ -2,7 +2,8 @@
 import { initMock } from './modules/mock.js';
 import {
   state, loadState, updateState,
-  createNewSession, deleteSession, switchSession, getCurrentSession, updateCurrentSession, deleteAllSessions
+  createNewSession, deleteSession, switchSession, getCurrentSession, updateCurrentSession, deleteAllSessions,
+  getProviderCredentials, updateProviderCredentials, getCurrentProviderCredentials
 } from './modules/state.js';
 import * as UI from './modules/ui.js';
 import * as API from './modules/api.js';
@@ -50,6 +51,85 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 UI.elements.providerSelect.addEventListener('change', (e) => handleProviderChange(e.target.value));
+
+function saveCurrentProviderCredentials() {
+  const currentProvider = state.provider;
+  if (!currentProvider) return;
+
+  let credentials = {};
+
+  switch (currentProvider) {
+    case 'openai':
+    case 'openrouter':
+    case 'anthropic':
+    case 'huggingface':
+      credentials.apiKey = UI.elements.apiKeyInput.value.trim();
+      break;
+    case 'ollama':
+      credentials.endpoint = UI.elements.endpointInput.value.trim();
+      break;
+    case 'bedrock':
+      credentials.accessKey = UI.elements.awsAccessKey.value.trim();
+      credentials.secretKey = UI.elements.awsSecretKey.value.trim();
+      credentials.sessionToken = UI.elements.awsSessionToken.value.trim();
+      credentials.region = UI.elements.awsRegion.value.trim();
+      break;
+  }
+
+  updateProviderCredentials(currentProvider, credentials);
+}
+
+function loadProviderCredentials(provider) {
+  const credentials = getProviderCredentials(provider);
+  if (!credentials) return;
+
+  // Clear all fields first
+  UI.elements.apiKeyInput.value = '';
+  UI.elements.endpointInput.value = '';
+  UI.elements.awsAccessKey.value = '';
+  UI.elements.awsSecretKey.value = '';
+  UI.elements.awsSessionToken.value = '';
+  UI.elements.awsRegion.value = 'us-east-1';
+
+  // Load provider-specific credentials
+  switch (provider) {
+    case 'openai':
+    case 'openrouter':
+    case 'anthropic':
+    case 'huggingface':
+      if (credentials.apiKey) {
+        UI.elements.apiKeyInput.value = credentials.apiKey;
+      }
+      break;
+    case 'ollama':
+      if (credentials.endpoint) {
+        UI.elements.endpointInput.value = credentials.endpoint;
+      }
+      break;
+    case 'bedrock':
+      if (credentials.accessKey) UI.elements.awsAccessKey.value = credentials.accessKey;
+      if (credentials.secretKey) UI.elements.awsSecretKey.value = credentials.secretKey;
+      if (credentials.sessionToken) UI.elements.awsSessionToken.value = credentials.sessionToken;
+      if (credentials.region) UI.elements.awsRegion.value = credentials.region;
+      break;
+  }
+}
+
+function updateCredentialFieldsVisibility(provider) {
+  // Hide all credential groups
+  UI.elements.apiKeyGroup.classList.add('hidden');
+  UI.elements.endpointGroup.classList.add('hidden');
+  UI.elements.awsGroup.classList.add('hidden');
+
+  // Show relevant credential group
+  if (provider === 'ollama') {
+    UI.elements.endpointGroup.classList.remove('hidden');
+  } else if (provider === 'bedrock') {
+    UI.elements.awsGroup.classList.remove('hidden');
+  } else {
+    UI.elements.apiKeyGroup.classList.remove('hidden');
+  }
+}
 
 function handleProviderChange(provider) {
   // Reset all
