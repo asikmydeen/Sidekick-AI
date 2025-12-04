@@ -186,7 +186,7 @@ export async function* streamChatApi(state, newMsgContent, signal) {
      const text = json.output?.message?.content?.[0]?.text || '';
      yield text;
   } else if (provider === 'huggingface') {
-     url = `https://router.huggingface.co/models/${model}`;
+     url = `https://api-inference.huggingface.co/models/${model}`;
      const fullPrompt = rawMessages.map(m => {
           const txt = Array.isArray(m.content) ? m.content.find(c=>c.type==='text')?.text : m.content;
           return `${m.role}: ${txt}`;
