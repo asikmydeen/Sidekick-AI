@@ -19,26 +19,25 @@ export async function fetchModels(provider, credentials) {
       transform = (data) => data.data.map(m => m.id).sort();
       break;
     case 'huggingface':
-      // Return curated list of models known to work with HF Serverless Inference API
-      // Not all models on HF Hub are deployed - only specific ones are available
+      // Return some popular models as suggestions - users can add their own via manual entry
+      // Format: model-name or model-name:provider (e.g., deepseek-ai/DeepSeek-V3:novita)
       return [
         'meta-llama/Llama-3.2-3B-Instruct',
-        'meta-llama/Llama-3.2-1B-Instruct',
         'meta-llama/Llama-3.1-8B-Instruct',
-        'mistralai/Mistral-7B-Instruct-v0.3',
-        'mistralai/Mistral-Nemo-Instruct-2407',
-        'microsoft/Phi-3-mini-4k-instruct',
-        'HuggingFaceH4/zephyr-7b-beta',
         'Qwen/Qwen2.5-72B-Instruct',
-        'Qwen/Qwen2.5-7B-Instruct',
-        'Qwen/Qwen2.5-3B-Instruct',
-        'google/gemma-2-9b-it',
-        'google/gemma-2-2b-it',
-        'NousResearch/Hermes-3-Llama-3.1-8B',
-        'deepseek-ai/DeepSeek-R1-Distill-Qwen-32B'
+        'mistralai/Mistral-7B-Instruct-v0.3',
+        'deepseek-ai/DeepSeek-R1-Distill-Qwen-32B',
+        'google/gemma-2-9b-it'
       ];
     case 'anthropic':
-      throw new Error('Anthropic API does not support listing models automatically.');
+      // Return common Anthropic models - users can add their own via manual entry
+      return [
+        'claude-sonnet-4-20250514',
+        'claude-3-5-sonnet-20241022',
+        'claude-3-5-haiku-20241022',
+        'claude-3-opus-20240229',
+        'claude-3-haiku-20240307'
+      ];
     case 'ollama':
       const base = credentials.endpoint.replace(/\/$/, '');
       url = `${base}/api/tags`;
