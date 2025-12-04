@@ -660,6 +660,31 @@ async function handleHuggingFaceTask(task, text, session) {
         break;
       }
 
+      case 'text-to-video': {
+        // Show user prompt
+        session.messages.push({ role: 'user', content: text });
+        updateCurrentSession(session.messages);
+        UI.appendMessageToDOM('user', text);
+
+        // Show loading with video generation notice
+        const msgId = 'msg-' + Date.now();
+        UI.appendMessageToDOM('assistant', null, msgId, true);
+        UI.showStatus('Generating video... This may take 30-120 seconds.', 'info');
+
+        // Generate video
+        const videoUrl = await API.textToVideo(model, text, apiKey);
+
+        // Remove loading and show result
+        UI.removeMessage(msgId);
+        const responseContent = [
+          { type: 'generated_video', url: videoUrl, prompt: text }
+        ];
+        session.messages.push({ role: 'assistant', content: responseContent });
+        updateCurrentSession(session.messages);
+        UI.appendMessageToDOM('assistant', responseContent);
+        break;
+      }
+
       case 'text-to-speech': {
         // Show user text
         session.messages.push({ role: 'user', content: text });
