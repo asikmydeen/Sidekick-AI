@@ -170,6 +170,33 @@
         </div>
       </div>
     </div>
+
+    <!-- Media Gallery (for full-page mode) -->
+    <div id="mediaGallery" class="media-gallery hidden">
+      <div class="gallery-header">
+        <h2>Generated Media</h2>
+        <div class="gallery-tabs">
+          <button class="gallery-tab active" data-filter="all">All</button>
+          <button class="gallery-tab" data-filter="image">Images</button>
+          <button class="gallery-tab" data-filter="video">Videos</button>
+        </div>
+      </div>
+      <div id="galleryGrid" class="gallery-grid">
+        <!-- Media items will be populated dynamically -->
+      </div>
+    </div>
+
+    <!-- Media Lightbox -->
+    <div id="mediaLightbox" class="media-lightbox hidden">
+      <button id="closeLightbox" class="lightbox-close">×</button>
+      <div class="lightbox-content">
+        <!-- Media will be shown here -->
+      </div>
+      <div class="lightbox-info">
+        <p id="lightboxPrompt" class="lightbox-prompt"></p>
+        <button id="lightboxDownload" class="media-btn">⬇️ Download</button>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="sidepanel.js"></script>
