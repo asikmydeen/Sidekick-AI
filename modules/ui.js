@@ -23,6 +23,8 @@ export const elements = {
   hfTaskGroup: document.getElementById('hfTaskGroup'),
   hfTaskSelect: document.getElementById('hfTask'),
   hfTaskHint: document.getElementById('hfTaskHint'),
+  hfProviderGroup: document.getElementById('hfProviderGroup'),
+  hfProviderSelect: document.getElementById('hfProvider'),
 
   fetchModelsBtn: document.getElementById('fetchModelsBtn'),
   fetchStatus: document.getElementById('fetchStatus'),
