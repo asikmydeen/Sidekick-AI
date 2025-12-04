@@ -262,6 +262,9 @@ export async function* streamChatApi(state, newMsgContent, signal) {
 
     if (!hfRes.ok) {
       const errorText = await hfRes.text();
+      if (hfRes.status === 404 || errorText.includes('paused') || errorText.includes('not found')) {
+        throw new Error(`Model "${model}" is not available on HF Serverless Inference. Try a different model from the list.`);
+      }
       throw new Error(`Hugging Face API error (${hfRes.status}): ${errorText}`);
     }
 
