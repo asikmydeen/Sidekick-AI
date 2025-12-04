@@ -498,6 +498,17 @@ async function sendMessage() {
     if (pageText) finalText += `\n\n[Page Content]:\n${pageText}`;
   }
 
+  // Check if this is a HuggingFace multi-modal task
+  const provider = state.provider;
+  const hfTask = provider === 'huggingface' ? (getProviderCredentials('huggingface')?.task || 'chat') : null;
+
+  // Handle HuggingFace multi-modal tasks
+  if (provider === 'huggingface' && hfTask !== 'chat') {
+    await handleHuggingFaceTask(hfTask, finalText, session);
+    return;
+  }
+
+  // Standard chat flow
   let messageContent;
   if (pendingAttachments.length > 0) {
     messageContent = [];
@@ -557,5 +568,143 @@ async function sendMessage() {
   } finally {
     UI.toggleLoading(false);
     abortController = null;
+  }
+}
+
+// Handle HuggingFace multi-modal tasks (image generation, TTS, etc.)
+async function handleHuggingFaceTask(task, text, session) {
+  const credentials = getProviderCredentials('huggingface');
+  const model = state.model;
+  const apiKey = credentials.apiKey;
+
+  UI.elements.messageInput.value = '';
+  UI.autoResizeInput();
+
+  try {
+    switch (task) {
+      case 'text-to-image': {
+        // Show user prompt
+        session.messages.push({ role: 'user', content: text });
+        updateCurrentSession(session.messages);
+        UI.appendMessageToDOM('user', text);
+
+        // Show loading
+        const msgId = 'msg-' + Date.now();
+        UI.appendMessageToDOM('assistant', null, msgId, true);
+
+        // Generate image
+        const imageUrl = await API.textToImage(model, text, apiKey);
+
+        // Remove loading and show result
+        UI.removeMessage(msgId);
+        const responseContent = [
+          { type: 'generated_image', url: imageUrl, prompt: text }
+        ];
+        session.messages.push({ role: 'assistant', content: responseContent });
+        updateCurrentSession(session.messages);
+        UI.appendMessageToDOM('assistant', responseContent);
+        break;
+      }
+
+      case 'image-to-text': {
+        // Need an image attachment
+        if (pendingAttachments.length === 0) {
+          UI.showStatus('Please attach an image first.', 'error');
+          UI.toggleLoading(false);
+          return;
+        }
+
+        const imageData = pendingAttachments[0].base64;
+        const userContent = [
+          { type: 'text', text: text || 'Describe this image' },
+          { type: 'image_url', image_url: { url: imageData } }
+        ];
+        session.messages.push({ role: 'user', content: userContent });
+        updateCurrentSession(session.messages);
+        UI.appendMessageToDOM('user', userContent);
+
+        pendingAttachments = [];
+        UI.renderAttachments([], () => {});
+
+        // Show loading
+        const msgId = 'msg-' + Date.now();
+        UI.appendMessageToDOM('assistant', null, msgId, true);
+
+        // Get caption
+        const caption = await API.imageToText(model, imageData, apiKey);
+
+        // Remove loading and show result
+        UI.removeMessage(msgId);
+        session.messages.push({ role: 'assistant', content: caption });
+        updateCurrentSession(session.messages);
+        UI.appendMessageToDOM('assistant', caption);
+        break;
+      }
+
+      case 'text-to-speech': {
+        // Show user text
+        session.messages.push({ role: 'user', content: text });
+        updateCurrentSession(session.messages);
+        UI.appendMessageToDOM('user', text);
+
+        // Show loading
+        const msgId = 'msg-' + Date.now();
+        UI.appendMessageToDOM('assistant', null, msgId, true);
+
+        // Generate audio
+        const audioUrl = await API.textToSpeech(model, text, apiKey);
+
+        // Remove loading and show result
+        UI.removeMessage(msgId);
+        const responseContent = [
+          { type: 'generated_audio', url: audioUrl }
+        ];
+        session.messages.push({ role: 'assistant', content: responseContent });
+        updateCurrentSession(session.messages);
+        UI.appendMessageToDOM('assistant', responseContent);
+        break;
+      }
+
+      case 'speech-to-text': {
+        // Need an audio attachment
+        if (pendingAttachments.length === 0) {
+          UI.showStatus('Please attach an audio file first.', 'error');
+          UI.toggleLoading(false);
+          return;
+        }
+
+        const audioData = pendingAttachments[0].base64;
+        const userContent = [
+          { type: 'audio_input', url: audioData }
+        ];
+        session.messages.push({ role: 'user', content: userContent });
+        updateCurrentSession(session.messages);
+        UI.appendMessageToDOM('user', userContent);
+
+        pendingAttachments = [];
+        UI.renderAttachments([], () => {});
+
+        // Show loading
+        const msgId = 'msg-' + Date.now();
+        UI.appendMessageToDOM('assistant', null, msgId, true);
+
+        // Transcribe
+        const transcription = await API.speechToText(model, audioData, apiKey);
+
+        // Remove loading and show result
+        UI.removeMessage(msgId);
+        session.messages.push({ role: 'assistant', content: transcription });
+        updateCurrentSession(session.messages);
+        UI.appendMessageToDOM('assistant', transcription);
+        break;
+      }
+
+      default:
+        UI.showStatus(`Unknown task: ${task}`, 'error');
+    }
+  } catch (err) {
+    UI.appendMessageToDOM('error', `Error: ${err.message}`);
+  } finally {
+    UI.toggleLoading(false);
   }
 }
