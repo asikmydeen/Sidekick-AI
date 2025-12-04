@@ -186,13 +186,17 @@ export async function* streamChatApi(state, newMsgContent, signal) {
      const text = json.output?.message?.content?.[0]?.text || '';
      yield text;
   } else if (provider === 'huggingface') {
-     url = `https://api-inference.huggingface.co/models/${model}`;
+     url = `https://router.huggingface.co/models/${model}`;
      const fullPrompt = rawMessages.map(m => {
           const txt = Array.isArray(m.content) ? m.content.find(c=>c.type==='text')?.text : m.content;
           return `${m.role}: ${txt}`;
      }).join('\n');
      const hfBody = { inputs: fullPrompt, parameters: { max_new_tokens: 500, return_full_text: false, temperature } };
-     const hfRes = await fetch(url, { method: 'POST', headers: { 'Authorization': `Bearer ${apiKey}`}, body: JSON.stringify(hfBody), signal });
+     const hfRes = await fetch(url, { method: 'POST', headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(hfBody), signal });
+     if (!hfRes.ok) {
+       const errorText = await hfRes.text();
+       throw new Error(`Hugging Face API error (${hfRes.status}): ${errorText}`);
+     }
      const hfData = await hfRes.json();
      yield Array.isArray(hfData) ? hfData[0].generated_text : JSON.stringify(hfData);
   }
