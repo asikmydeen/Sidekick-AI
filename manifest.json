@@ -1,16 +1,19 @@
 {
   "manifest_version": 3,
   "name": "Dyad AI Chatbot",
-  "version": "1.5.0",
+  "version": "2.0.0",
   "description": "A chatbot extension connecting to OpenAI, Anthropic, Hugging Face, and OpenRouter.",
-  "permissions": ["storage", "activeTab", "scripting"],
+  "permissions": ["storage", "activeTab", "scripting", "sidePanel"],
   "host_permissions": ["<all_urls>"],
   "action": {
-    "default_popup": "popup.html",
+    "default_title": "Open AI Chatbot",
     "default_icon": {
       "16": "icon16.png",
       "48": "icon48.png",
       "128": "icon128.png"
     }
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
   }
 }

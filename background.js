@@ -3,6 +3,11 @@
 
 chrome.runtime.onInstalled.addListener(() => {
   console.log("Extension installed and ready.");
+  // Allow the side panel to open when the action icon is clicked
+  if (chrome.sidePanel && chrome.sidePanel.setPanelBehavior) {
+    chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
+      .catch((error) => console.error(error));
+  }
 });
 
 // Example message listener

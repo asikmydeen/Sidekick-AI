@@ -77,3 +77,10 @@
 - **Auto-Read**: Added a setting to automatically read responses as soon as they are generated.
 - **UX Improvements**: "Copy" buttons now provide visual feedback ("Copied!") when clicked.
 - **Message Controls**: Assistant messages now have dedicated control buttons for TTS.
+
+## v2.1.0 – 2025-08-25
+- **Side Panel Transition**: Converted the extension from a transient Popup to a persistent Chrome Side Panel.
+- **Manifest Update**: Added `sidePanel` permission and configured `side_panel` default path.
+- **Background Script**: Added listener to open Side Panel on extension icon click.
+- **Responsive Layout**: Updated CSS to accommodate full-height sidebar layout.
+- **File Renaming**: Renamed `popup.html/.js` to `sidepanel.html/.js` for semantic correctness.
