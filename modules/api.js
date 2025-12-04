@@ -2,81 +2,30 @@
 import { signRequest } from './aws.js';
 import { state, getCurrentProviderCredentials } from './state.js';
 
-// Ollama bridge iframe for CORS bypass
-let ollamaBridge = null;
-let bridgeReady = false;
-let messageId = 0;
-const pendingRequests = new Map();
+// Stream Ollama requests through service worker (bypasses CORS)
+function streamOllamaViaServiceWorker(url, body) {
+  return new Promise((resolve, reject) => {
+    const port = chrome.runtime.connect({ name: 'ollama-stream' });
+    const chunks = [];
 
-function initOllamaBridge() {
-  if (ollamaBridge) return;
-
-  // Create hidden iframe that loads bridge from localhost
-  ollamaBridge = document.createElement('iframe');
-  ollamaBridge.style.display = 'none';
-
-  // Load the bridge HTML from localhost (must be served by Ollama or local server)
-  const bridgeUrl = chrome.runtime.getURL('ollama-bridge.html');
-
-  // Create a blob URL instead to run in same origin
-  fetch(bridgeUrl)
-    .then(r => r.text())
-    .then(html => {
-      const blob = new Blob([html], { type: 'text/html' });
-      const blobUrl = URL.createObjectURL(blob);
-      ollamaBridge.src = blobUrl;
-      document.body.appendChild(ollamaBridge);
+    port.onMessage.addListener((msg) => {
+      if (msg.error) {
+        reject(new Error(msg.error));
+      } else if (msg.chunk) {
+        chunks.push(msg.chunk);
+      } else if (msg.done) {
+        resolve(chunks);
+      }
     });
 
-  // Listen for messages from bridge
-  window.addEventListener('message', (event) => {
-    if (event.source !== ollamaBridge.contentWindow) return;
-
-    if (event.data.ready) {
-      bridgeReady = true;
-      return;
-    }
-
-    const { id, data, error } = event.data;
-    const pending = pendingRequests.get(id);
-    if (pending) {
-      pendingRequests.delete(id);
-      if (error) {
-        pending.reject(new Error(error));
-      } else {
-        pending.resolve({ data });
+    port.onDisconnect.addListener(() => {
+      if (chunks.length === 0) {
+        reject(new Error('Connection closed without data'));
       }
-    }
-  });
-}
+    });
 
-function sendViaOllamaBridge(url, body) {
-  return new Promise((resolve, reject) => {
-    if (!ollamaBridge) {
-      initOllamaBridge();
-    }
-
-    // Wait for bridge to be ready
-    const checkReady = () => {
-      if (bridgeReady && ollamaBridge.contentWindow) {
-        const id = messageId++;
-        pendingRequests.set(id, { resolve, reject });
-
-        ollamaBridge.contentWindow.postMessage({ id, url, body }, '*');
-
-        // Timeout after 30 seconds
-        setTimeout(() => {
-          if (pendingRequests.has(id)) {
-            pendingRequests.delete(id);
-            reject(new Error('Request timeout'));
-          }
-        }, 30000);
-      } else {
-        setTimeout(checkReady, 100);
-      }
-    };
-
-    checkReady();
+    // Send the request
+    port.postMessage({ url, body });
   });
 }
 
@@ -222,19 +171,15 @@ export async function* streamChatApi(state, newMsgContent, signal) {
 
         console.log('[Ollama] Request body:', JSON.stringify(body, null, 2));
 
-        // Use iframe bridge to run request in localhost context (like Sider AI)
-        console.log('[Ollama] Sending request via iframe bridge');
-        const result = await sendViaOllamaBridge(url, body);
+        // Use service worker to bypass CORS (like Sider AI)
+        console.log('[Ollama] Streaming via service worker');
+        const chunks = await streamOllamaViaServiceWorker(url, body);
 
-        if (result.error) {
-          console.error('[Ollama] Error from bridge:', result.error);
-          throw new Error(`Ollama API error: ${result.error}`);
-        }
-
-        console.log('[Ollama] Response received from bridge');
+        console.log('[Ollama] Response received, parsing chunks');
 
         // Parse the streamed response
-        const lines = result.data.split('\n');
+        const allData = chunks.join('');
+        const lines = allData.split('\n');
         for (const line of lines) {
           if (!line.trim()) continue;
           try {
