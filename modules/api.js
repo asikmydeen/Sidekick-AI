@@ -110,46 +110,70 @@ export async function* streamChatApi(state, newMsgContent, signal) {
       }
     }
   } else if (provider === 'ollama') {
-     const base = credentials.endpoint ? credentials.endpoint.replace(/\/$/, '') : 'http://localhost:11434';
-     url = `${base}/api/chat`;
+     try {
+       const base = credentials.endpoint ? credentials.endpoint.replace(/\/$/, '') : 'http://localhost:11434';
+       url = `${base}/api/chat`;
 
-     const ollamaMessages = rawMessages.map(msg => {
-        if (Array.isArray(msg.content)) {
-          let text = "";
-          let images = [];
-          msg.content.forEach(part => {
-            if (part.type === 'text') text += part.text;
-            if (part.type === 'image_url') {
-               const b64 = part.image_url.url.split(',')[1];
-               if (b64) images.push(b64);
-            }
-          });
-          return { role: msg.role, content: text, images: images.length ? images : undefined };
+       console.log('[Ollama] Endpoint:', url);
+       console.log('[Ollama] Model:', model);
+       console.log('[Ollama] Raw messages:', rawMessages);
+
+       const ollamaMessages = rawMessages.map(msg => {
+          if (Array.isArray(msg.content)) {
+            let text = "";
+            let images = [];
+            msg.content.forEach(part => {
+              if (part.type === 'text') text += part.text;
+              if (part.type === 'image_url') {
+                 const b64 = part.image_url.url.split(',')[1];
+                 if (b64) images.push(b64);
+              }
+            });
+            return { role: msg.role, content: text, images: images.length ? images : undefined };
+          }
+          return msg;
+        });
+
+        console.log('[Ollama] Formatted messages:', ollamaMessages);
+
+        const body = { model, messages: ollamaMessages, stream: true, options: { temperature } };
+        if (systemPrompt) body.system = systemPrompt;
+
+        console.log('[Ollama] Request body:', JSON.stringify(body, null, 2));
+
+        const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal });
+
+        console.log('[Ollama] Response status:', response.status, response.statusText);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('[Ollama] Error response:', errorText);
+          throw new Error(`Ollama API error (${response.status}): ${errorText}`);
         }
-        return msg;
-      });
 
-      const body = { model, messages: ollamaMessages, stream: true, options: { temperature } };
-      if (systemPrompt) body.system = systemPrompt;
-
-      const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal });
-      if (!response.ok) throw new Error(await response.text());
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        // Ollama sends JSON objects directly (sometimes multiple per chunk)
-        const lines = chunk.split('\n');
-        for (const line of lines) {
-           if (!line.trim()) continue;
-           try {
-             const json = JSON.parse(line);
-             if (json.message?.content) yield json.message.content;
-           } catch(e) {}
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          // Ollama sends JSON objects directly (sometimes multiple per chunk)
+          const lines = chunk.split('\n');
+          for (const line of lines) {
+             if (!line.trim()) continue;
+             try {
+               const json = JSON.parse(line);
+               console.log('[Ollama] Received chunk:', json);
+               if (json.message?.content) yield json.message.content;
+             } catch(e) {
+               console.error('[Ollama] JSON parse error:', e, 'Line:', line);
+             }
+          }
         }
-      }
+     } catch (error) {
+       console.error('[Ollama] Fatal error:', error);
+       throw error;
+     }
   } else if (provider === 'bedrock') {
      // Bedrock Non-Streaming (Simple Implementation for now)
      // To support streaming with AWS SigV4 via REST without SDK requires complex event-stream binary parsing.

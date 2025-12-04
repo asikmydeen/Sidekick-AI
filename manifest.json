@@ -4,7 +4,11 @@
   "version": "2.1.0",
   "description": "A chatbot extension connecting to OpenAI, Anthropic, Hugging Face, and OpenRouter.",
   "permissions": ["storage", "activeTab", "scripting", "sidePanel"],
-  "host_permissions": ["<all_urls>"],
+  "host_permissions": [
+    "<all_urls>",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
   "action": {
     "default_title": "Open AI Chatbot",
     "default_icon": {
