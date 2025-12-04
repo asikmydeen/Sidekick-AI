@@ -391,7 +391,7 @@ export async function imageToText(model, imageData, apiKey) {
  * Returns a base64 data URL of the generated audio
  */
 export async function textToSpeech(model, text, apiKey) {
-  const url = `https://router.huggingface.co/hf-inference/models/${model}`;
+  const url = `https://api-inference.huggingface.co/models/${model}`;
 
   const response = await fetch(url, {
     method: 'POST',
