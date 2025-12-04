@@ -14,15 +14,6 @@ function setupSidePanel() {
 async function setupOllamaHeaderRules() {
   const RULE_ID = 1;
 
-  // Remove existing rules first
-  try {
-    await chrome.declarativeNetRequest.updateDynamicRules({
-      removeRuleIds: [RULE_ID]
-    });
-  } catch (e) {
-    console.log('[Background] No existing rules to remove');
-  }
-
   // Add rule to modify Origin header for Ollama requests
   const rule = {
     id: RULE_ID,
@@ -44,7 +35,9 @@ async function setupOllamaHeaderRules() {
   };
 
   try {
+    // Remove and add in a single atomic operation to avoid race conditions
     await chrome.declarativeNetRequest.updateDynamicRules({
+      removeRuleIds: [RULE_ID],
       addRules: [rule]
     });
     console.log('[Background] Ollama header modification rule installed');
