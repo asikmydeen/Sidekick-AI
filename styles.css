@@ -1,52 +1,137 @@
-/* Keep previous variables */
+/* Modern Design System Variables */
 :root {
-  --primary-color: #2563eb;
-  --bg-color: #f9fafb;
-  --text-color: #333333;
-  --header-bg: #ffffff;
+  /* Primary palette - vibrant blue gradient */
+  --primary-color: #6366f1;
+  --primary-hover: #4f46e5;
+  --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --primary-light: rgba(99, 102, 241, 0.1);
+
+  /* Background colors */
+  --bg-color: #f8fafc;
+  --bg-secondary: #f1f5f9;
+  --bg-elevated: #ffffff;
+
+  /* Text colors */
+  --text-color: #1e293b;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+
+  /* Surface colors */
+  --header-bg: rgba(255, 255, 255, 0.8);
   --chat-bg: #ffffff;
-  --user-msg-bg: #2563eb;
+  --user-msg-bg: var(--primary-gradient);
   --user-msg-text: #ffffff;
-  --bot-msg-bg: #e5e7eb;
-  --bot-msg-text: #1f2937;
-  --border-color: #d1d5db;
-  --code-bg: #1e1e1e;
-  --code-text: #d4d4d4;
+  --bot-msg-bg: #ffffff;
+  --bot-msg-text: #334155;
+  --border-color: #e2e8f0;
+  --border-light: #f1f5f9;
+
+  /* Code blocks */
+  --code-bg: #0f172a;
+  --code-text: #e2e8f0;
+
+  /* Input fields */
   --input-bg: #ffffff;
-  --chip-bg: #e5e7eb;
-  --chip-text: #374151;
-  --chip-hover: #d1d5db;
+  --input-border: #e2e8f0;
+  --input-focus: #6366f1;
+
+  /* Chips/Tags */
+  --chip-bg: #f1f5f9;
+  --chip-text: #475569;
+  --chip-hover: #e2e8f0;
+  --chip-border: #e2e8f0;
+
+  /* Status colors */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
   --mic-active: #ef4444;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+
+  /* Think block specific */
+  --think-bg: #fefce8;
+  --think-border: #fde047;
+  --think-text: #713f12;
+  --think-icon: #ca8a04;
+
+  /* Border radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 body.dark-mode {
-  --primary-color: #3b82f6;
-  --bg-color: #111827;
-  --text-color: #f3f4f6;
-  --header-bg: #1f2937;
-  --chat-bg: #111827;
-  --user-msg-bg: #3b82f6;
+  --primary-color: #818cf8;
+  --primary-hover: #6366f1;
+  --primary-gradient: linear-gradient(135deg, #6366f1 0%, #a78bfa 100%);
+  --primary-light: rgba(129, 140, 248, 0.15);
+
+  --bg-color: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-elevated: #1e293b;
+
+  --text-color: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  --header-bg: rgba(15, 23, 42, 0.9);
+  --chat-bg: #0f172a;
+  --user-msg-bg: var(--primary-gradient);
   --user-msg-text: #ffffff;
-  --bot-msg-bg: #374151;
-  --bot-msg-text: #e5e7eb;
-  --border-color: #374151;
-  --code-bg: #000000;
-  --code-text: #e5e7eb;
-  --input-bg: #1f2937;
-  --chip-bg: #374151;
-  --chip-text: #e5e7eb;
-  --chip-hover: #4b5563;
+  --bot-msg-bg: #1e293b;
+  --bot-msg-text: #e2e8f0;
+  --border-color: #334155;
+  --border-light: #1e293b;
+
+  --code-bg: #020617;
+  --code-text: #e2e8f0;
+
+  --input-bg: #1e293b;
+  --input-border: #334155;
+  --input-focus: #818cf8;
+
+  --chip-bg: #1e293b;
+  --chip-text: #cbd5e1;
+  --chip-hover: #334155;
+  --chip-border: #334155;
+
+  --think-bg: #422006;
+  --think-border: #854d0e;
+  --think-text: #fef3c7;
+  --think-icon: #fbbf24;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  /* Sidebar responsive sizing */
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   width: 100%;
   height: 100vh;
   background-color: var(--bg-color);
   color: var(--text-color);
   overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .container {
@@ -54,6 +139,7 @@ body {
   flex-direction: column;
   height: 100%;
   position: relative;
+  background: var(--bg-color);
 }
 
 /* Sidebar (History) */
