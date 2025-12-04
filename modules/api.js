@@ -111,7 +111,7 @@ export async function* streamChatApi(state, newMsgContent, signal) {
     }
   } else if (provider === 'ollama') {
      try {
-       const base = credentials.endpoint ? credentials.endpoint.replace(/\/$/, '') : 'http://localhost:11434';
+       const base = credentials.endpoint ? credentials.endpoint.replace(/\/$/, '') : 'http://127.0.0.1:11434';
        url = `${base}/api/chat`;
 
        console.log('[Ollama] Endpoint:', url);
