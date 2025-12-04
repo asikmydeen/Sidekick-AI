@@ -229,6 +229,12 @@ UI.elements.themeBtn.addEventListener('click', () => {
   UI.applyTheme(newTheme);
 });
 
+// Expand to full page mode
+UI.elements.expandBtn.addEventListener('click', () => {
+  // Open the sidepanel.html as a full tab
+  chrome.tabs.create({ url: chrome.runtime.getURL('sidepanel.html') });
+});
+
 UI.elements.settingsBtn.addEventListener('click', () => UI.toggleView('config'));
 
 UI.elements.startChatBtn.addEventListener('click', () => {
