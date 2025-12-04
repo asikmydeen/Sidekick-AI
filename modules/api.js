@@ -460,7 +460,7 @@ export async function speechToText(model, audioData, apiKey) {
  * Note: Video generation can take longer than image generation (30-120s)
  */
 export async function textToVideo(model, prompt, apiKey, options = {}) {
-  const url = `https://router.huggingface.co/hf-inference/models/${model}`;
+  const url = `https://api-inference.huggingface.co/models/${model}`;
 
   const body = {
     inputs: prompt,
