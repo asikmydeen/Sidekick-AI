@@ -645,6 +645,7 @@ async function handleHuggingFaceTask(task, text, session) {
   const credentials = getProviderCredentials('huggingface');
   const model = state.model;
   const apiKey = credentials.apiKey;
+  const hfProvider = credentials.hfProvider || 'auto';
 
   UI.elements.messageInput.value = '';
   UI.autoResizeInput();
@@ -662,12 +663,56 @@ async function handleHuggingFaceTask(task, text, session) {
         UI.appendMessageToDOM('assistant', null, msgId, true);
 
         // Generate image
-        const imageUrl = await API.textToImage(model, text, apiKey);
+        const imageUrl = await API.textToImage(model, text, apiKey, { provider: hfProvider });
 
         // Remove loading and show result
         UI.removeMessage(msgId);
         const responseContent = [
           { type: 'generated_image', url: imageUrl, prompt: text }
+        ];
+        session.messages.push({ role: 'assistant', content: responseContent });
+        updateCurrentSession(session.messages);
+        UI.appendMessageToDOM('assistant', responseContent);
+        break;
+      }
+
+      case 'image-to-image': {
+        // Need an image attachment
+        if (pendingAttachments.length === 0) {
+          UI.showStatus('Please attach an image first.', 'error');
+          UI.toggleLoading(false);
+          return;
+        }
+
+        if (!text) {
+          UI.showStatus('Please enter a transformation prompt (e.g., "Turn the cat into a tiger").', 'error');
+          UI.toggleLoading(false);
+          return;
+        }
+
+        const imageData = pendingAttachments[0].base64;
+        const userContent = [
+          { type: 'text', text: text },
+          { type: 'image_url', image_url: { url: imageData } }
+        ];
+        session.messages.push({ role: 'user', content: userContent });
+        updateCurrentSession(session.messages);
+        UI.appendMessageToDOM('user', userContent);
+
+        pendingAttachments = [];
+        UI.renderAttachments([], () => {});
+
+        // Show loading
+        const msgId = 'msg-' + Date.now();
+        UI.appendMessageToDOM('assistant', null, msgId, true);
+
+        // Transform image
+        const transformedImageUrl = await API.imageToImage(model, imageData, text, apiKey, { provider: hfProvider });
+
+        // Remove loading and show result
+        UI.removeMessage(msgId);
+        const responseContent = [
+          { type: 'generated_image', url: transformedImageUrl, prompt: text }
         ];
         session.messages.push({ role: 'assistant', content: responseContent });
         updateCurrentSession(session.messages);
@@ -700,7 +745,7 @@ async function handleHuggingFaceTask(task, text, session) {
         UI.appendMessageToDOM('assistant', null, msgId, true);
 
         // Get caption
-        const caption = await API.imageToText(model, imageData, apiKey);
+        const caption = await API.imageToText(model, imageData, apiKey, { provider: hfProvider });
 
         // Remove loading and show result
         UI.removeMessage(msgId);
@@ -722,7 +767,7 @@ async function handleHuggingFaceTask(task, text, session) {
         UI.showStatus('Generating video... This may take 30-120 seconds.', 'info');
 
         // Generate video
-        const videoUrl = await API.textToVideo(model, text, apiKey);
+        const videoUrl = await API.textToVideo(model, text, apiKey, { provider: hfProvider });
 
         // Remove loading and show result
         UI.removeMessage(msgId);
@@ -746,7 +791,7 @@ async function handleHuggingFaceTask(task, text, session) {
         UI.appendMessageToDOM('assistant', null, msgId, true);
 
         // Generate audio
-        const audioUrl = await API.textToSpeech(model, text, apiKey);
+        const audioUrl = await API.textToSpeech(model, text, apiKey, { provider: hfProvider });
 
         // Remove loading and show result
         UI.removeMessage(msgId);
