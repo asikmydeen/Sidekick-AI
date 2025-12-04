@@ -61,12 +61,27 @@
         <select id="hfTask">
           <option value="chat">💬 Chat Completion</option>
           <option value="text-to-image">🎨 Text to Image</option>
+          <option value="image-to-image">🖼️ Image to Image</option>
           <option value="text-to-video">🎬 Text to Video</option>
           <option value="image-to-text">📝 Image to Text</option>
           <option value="text-to-speech">🔊 Text to Speech</option>
           <option value="speech-to-text">🎤 Speech to Text</option>
         </select>
         <small class="hint-text" id="hfTaskHint">Select a task to see recommended models</small>
+      </div>
+
+      <!-- HuggingFace Provider Selector -->
+      <div class="form-group hidden" id="hfProviderGroup">
+        <label for="hfProvider">Inference Provider</label>
+        <select id="hfProvider">
+          <option value="auto">🔄 Auto (Recommended)</option>
+          <option value="hf-inference">HF Inference</option>
+          <option value="fal-ai">Fal AI</option>
+          <option value="replicate">Replicate</option>
+          <option value="sambanova">SambaNova</option>
+          <option value="together">Together AI</option>
+        </select>
+        <small class="hint-text">Provider for model routing. Use 'Auto' unless a model requires a specific provider.</small>
       </div>
 
       <div class="form-group hidden" id="endpointGroup">
