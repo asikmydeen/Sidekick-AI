@@ -79,6 +79,9 @@ export async function* streamChatApi(state, newMsgContent, signal) {
 
   const rawMessages = messages.map(m => ({ role: m.role, content: m.content }));
 
+  // Add the new user message
+  rawMessages.push({ role: 'user', content: newMsgContent });
+
   if (provider === 'openai' || provider === 'openrouter') {
     if (credentials.apiKey) headers['Authorization'] = `Bearer ${credentials.apiKey}`;
     history.push(...rawMessages);
