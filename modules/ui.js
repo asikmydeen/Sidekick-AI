@@ -450,15 +450,25 @@ export function renderAttachments(attachments, onRemove) {
     const thumb = document.createElement('div');
     thumb.className = 'preview-thumb';
 
-    const img = document.createElement('img');
-    img.src = att.base64;
+    if (att.type === 'audio') {
+      // Audio file preview
+      const audioIcon = document.createElement('div');
+      audioIcon.className = 'audio-preview-icon';
+      audioIcon.textContent = '🎵';
+      audioIcon.title = att.name || 'Audio file';
+      thumb.appendChild(audioIcon);
+    } else {
+      // Image preview
+      const img = document.createElement('img');
+      img.src = att.base64;
+      thumb.appendChild(img);
+    }
 
     const btn = document.createElement('button');
     btn.className = 'remove-btn';
     btn.textContent = '×';
     btn.onclick = () => onRemove(index);
 
-    thumb.appendChild(img);
     thumb.appendChild(btn);
     elements.attachmentPreview.appendChild(thumb);
   });
