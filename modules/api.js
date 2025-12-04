@@ -117,7 +117,7 @@ export async function* streamChatApi(state, newMsgContent, signal) {
     }
   } else if (provider === 'ollama') {
      try {
-       const base = credentials.endpoint ? credentials.endpoint.replace(/\/$/, '') : 'http://localhost:11435';
+       const base = credentials.endpoint ? credentials.endpoint.replace(/\/$/, '') : 'http://localhost:11434';
        url = `${base}/api/chat`;
 
        console.log('[Ollama] Endpoint:', url);
@@ -144,38 +144,31 @@ export async function* streamChatApi(state, newMsgContent, signal) {
 
         console.log('[Ollama] Request body:', JSON.stringify(body, null, 2));
 
-        const response = await fetch(url, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(body),
-          signal
+        // Use background service worker to bypass CORS (like Sider AI)
+        console.log('[Ollama] Sending request via service worker to bypass CORS');
+        const result = await chrome.runtime.sendMessage({
+          action: 'ollamaRequest',
+          url: url,
+          body: body
         });
 
-        console.log('[Ollama] Response status:', response.status, response.statusText);
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('[Ollama] Error response:', errorText);
-          throw new Error(`Ollama API error (${response.status}): ${errorText}`);
+        if (!result.success) {
+          console.error('[Ollama] Error from service worker:', result.error);
+          throw new Error(`Ollama API error: ${result.error}`);
         }
 
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
-          // Ollama /api/generate sends JSON objects
-          const lines = chunk.split('\n');
-          for (const line of lines) {
-             if (!line.trim()) continue;
-             try {
-               const json = JSON.parse(line);
-               console.log('[Ollama] Received chunk:', json);
-               if (json.message?.content) yield json.message.content;
-             } catch(e) {
-               console.error('[Ollama] JSON parse error:', e, 'Line:', line);
-             }
+        console.log('[Ollama] Response received from service worker');
+
+        // Parse the streamed response
+        const lines = result.data.split('\n');
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const json = JSON.parse(line);
+            console.log('[Ollama] Received chunk:', json);
+            if (json.message?.content) yield json.message.content;
+          } catch(e) {
+            console.error('[Ollama] JSON parse error:', e, 'Line:', line);
           }
         }
      } catch (error) {

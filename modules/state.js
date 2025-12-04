@@ -33,7 +33,7 @@ export let state = {
     openrouter: { apiKey: '', selectedModel: '', models: [] },
     anthropic: { apiKey: '', selectedModel: '', models: [] },
     huggingface: { apiKey: '', selectedModel: '', models: [] },
-    ollama: { endpoint: 'http://localhost:11435', selectedModel: '', models: [] },
+    ollama: { endpoint: 'http://localhost:11434', selectedModel: '', models: [] },
     bedrock: {
       accessKey: '',
       secretKey: '',
@@ -112,7 +112,7 @@ export async function loadState() {
       }
 
       if (stored.chatState.endpoint) {
-        stored.chatState.providerCredentials.ollama.endpoint = stored.chatState.endpoint || 'http://localhost:11435';
+        stored.chatState.providerCredentials.ollama.endpoint = stored.chatState.endpoint || 'http://localhost:11434';
       }
 
       if (stored.chatState.awsAccessKey) {
@@ -131,7 +131,7 @@ export async function loadState() {
 
     // Ensure defaults for Ollama and Bedrock
     if (!state.providerCredentials.ollama.endpoint) {
-      state.providerCredentials.ollama.endpoint = 'http://localhost:11435';
+      state.providerCredentials.ollama.endpoint = 'http://localhost:11434';
     }
     if (!state.providerCredentials.bedrock.region) {
       state.providerCredentials.bedrock.region = 'us-east-1';
