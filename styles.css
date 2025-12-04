@@ -1241,66 +1241,80 @@ body.full-page-mode .session-item {
   margin-bottom: 8px;
 }
 
-/* Media Gallery */
+/* Media Gallery - Modern Design */
 .media-gallery {
-  padding: 20px;
+  padding: 24px;
   flex: 1;
   overflow-y: auto;
+  background: var(--bg-color);
 }
 
 .gallery-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .gallery-header h2 {
   margin: 0;
-  font-size: 18px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-color);
 }
 
 .gallery-tabs {
   display: flex;
   gap: 8px;
+  background: var(--bg-secondary);
+  padding: 4px;
+  border-radius: var(--radius-full);
 }
 
 .gallery-tab {
-  padding: 6px 12px;
-  border: 1px solid var(--border-color);
-  background: var(--input-bg);
-  color: var(--text-color);
-  border-radius: 6px;
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: var(--radius-full);
   cursor: pointer;
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all var(--transition-fast);
+}
+
+.gallery-tab:hover {
+  color: var(--text-color);
 }
 
 .gallery-tab.active {
-  background: var(--primary-color);
-  color: white;
-  border-color: var(--primary-color);
+  background: var(--bg-elevated);
+  color: var(--primary-color);
+  box-shadow: var(--shadow-sm);
 }
 
 .gallery-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
 }
 
-/* Media Card */
+/* Media Card - Modern Design */
 .media-card {
   position: relative;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   background: var(--bot-msg-bg);
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: all var(--transition-normal);
   aspect-ratio: 1;
+  border: 1px solid var(--border-color);
 }
 
 .media-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-xl);
+  border-color: var(--primary-color);
 }
 
 .media-card img,
@@ -1315,23 +1329,23 @@ body.full-page-mode .session-item {
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 12px;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+  padding: 16px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
   color: white;
 }
 
 .media-type-badge {
-  font-size: 16px;
+  font-size: 18px;
 }
 
 .media-prompt {
-  margin: 4px 0 0;
-  font-size: 11px;
+  margin: 6px 0 0;
+  font-size: 12px;
   opacity: 0.9;
-  line-height: 1.3;
+  line-height: 1.4;
 }
 
-/* Lightbox */
+/* Lightbox - Modern Design */
 .media-lightbox {
   position: fixed;
   top: 0;
@@ -1339,29 +1353,39 @@ body.full-page-mode .session-item {
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   z-index: 1000;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 24px;
 }
 
 .lightbox-close {
   position: absolute;
-  top: 20px;
-  right: 20px;
-  background: none;
+  top: 24px;
+  right: 24px;
+  background: rgba(255, 255, 255, 0.1);
   border: none;
   color: white;
-  font-size: 32px;
+  font-size: 24px;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
   cursor: pointer;
   opacity: 0.8;
   z-index: 1001;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .lightbox-close:hover {
   opacity: 1;
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .lightbox-content {
@@ -1377,22 +1401,27 @@ body.full-page-mode .session-item {
 .lightbox-video {
   max-width: 100%;
   max-height: 80vh;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
 }
 
 .lightbox-info {
-  padding: 20px;
+  padding: 24px;
   text-align: center;
   color: white;
 }
 
 .lightbox-prompt {
-  margin: 0 0 12px;
-  font-size: 14px;
+  margin: 0 0 16px;
+  font-size: 15px;
   opacity: 0.9;
   max-width: 600px;
+  line-height: 1.5;
 }
 
 .lightbox-info .media-btn {
-  background: var(--primary-color);
+  background: var(--primary-gradient);
+  padding: 12px 24px;
+  font-size: 14px;
+  border-radius: var(--radius-full);
 }
