@@ -300,13 +300,14 @@ export async function* streamChatApi(state, newMsgContent, signal) {
 /**
  * Text-to-Image generation using HuggingFace Inference Client
  * Returns a base64 data URL of the generated image
- * Uses provider: "auto" for automatic routing to the best provider
+ * @param {string} provider - 'auto', 'fal-ai', 'hf-inference', 'replicate', etc.
  */
 export async function textToImage(model, prompt, apiKey, options = {}) {
   const client = new InferenceClient(apiKey);
+  const provider = options.provider || 'auto';
 
   const blob = await client.textToImage({
-    provider: 'auto',
+    provider: provider,
     model: model,
     inputs: prompt,
     parameters: {
@@ -328,11 +329,57 @@ export async function textToImage(model, prompt, apiKey, options = {}) {
 }
 
 /**
+ * Image-to-Image transformation using HuggingFace Inference Client
+ * Returns a base64 data URL of the transformed image
+ * @param {string} provider - 'auto', 'fal-ai', 'hf-inference', 'replicate', etc.
+ */
+export async function imageToImage(model, imageData, prompt, apiKey, options = {}) {
+  const client = new InferenceClient(apiKey);
+  const provider = options.provider || 'fal-ai'; // fal-ai works best for most image-to-image models
+
+  // Convert base64 data URL to Blob if needed
+  let imageBlob;
+  if (typeof imageData === 'string' && imageData.startsWith('data:')) {
+    const base64 = imageData.split(',')[1];
+    const mimeType = imageData.split(';')[0].split(':')[1] || 'image/png';
+    const binaryData = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+    imageBlob = new Blob([binaryData], { type: mimeType });
+  } else if (imageData instanceof Blob) {
+    imageBlob = imageData;
+  } else {
+    imageBlob = new Blob([imageData], { type: 'image/png' });
+  }
+
+  const blob = await client.imageToImage({
+    provider: provider,
+    model: model,
+    inputs: imageBlob,
+    parameters: {
+      prompt: prompt,
+      guidance_scale: options.guidanceScale || 7.5,
+      num_inference_steps: options.steps || 25,
+      strength: options.strength || 0.8,
+      negative_prompt: options.negativePrompt || ''
+    }
+  });
+
+  // Convert Blob to base64 data URL
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+/**
  * Image-to-Text (image captioning) using HuggingFace Inference Client
  * Returns a text description of the image
+ * @param {string} provider - 'auto', 'fal-ai', 'hf-inference', 'replicate', etc.
  */
-export async function imageToText(model, imageData, apiKey) {
+export async function imageToText(model, imageData, apiKey, options = {}) {
   const client = new InferenceClient(apiKey);
+  const provider = options.provider || 'auto';
 
   // Convert base64 data URL to Blob if needed
   let imageBlob;
@@ -348,7 +395,7 @@ export async function imageToText(model, imageData, apiKey) {
   }
 
   const result = await client.imageToText({
-    provider: 'auto',
+    provider: provider,
     model: model,
     data: imageBlob
   });
