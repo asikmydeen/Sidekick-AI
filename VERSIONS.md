@@ -16,3 +16,9 @@
 ## v1.1.1 – 2025-08-25
 - Added package.json and vite to resolve preview environment errors
 - Added mock Chrome API in popup.js to allow UI testing in the web preview
+
+## v1.2.0 – 2025-08-25
+- Added chat persistence: conversation history is saved to local storage
+- Added basic Markdown support: renders code blocks, bold, and italics without external libraries
+- Added "Clear Chat" button to wipe history
+- Improved styles for code blocks and headers
