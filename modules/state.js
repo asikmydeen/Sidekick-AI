@@ -43,9 +43,96 @@ export let state = {
   }
 };
 
+/**
+ * Get credentials for the specified provider
+ */
+export function getProviderCredentials(provider) {
+  if (!state.providerCredentials || !state.providerCredentials[provider]) {
+    return null;
+  }
+  return { ...state.providerCredentials[provider] };
+}
+
+/**
+ * Update credentials for a specific provider
+ */
+export function updateProviderCredentials(provider, credentials) {
+  if (!state.providerCredentials) {
+    state.providerCredentials = {};
+  }
+  if (!state.providerCredentials[provider]) {
+    state.providerCredentials[provider] = {};
+  }
+
+  state.providerCredentials[provider] = {
+    ...state.providerCredentials[provider],
+    ...credentials
+  };
+
+  saveState();
+}
+
+/**
+ * Get current provider's credentials
+ */
+export function getCurrentProviderCredentials() {
+  return getProviderCredentials(state.provider);
+}
+
 export async function loadState() {
   const stored = await chrome.storage.local.get(['chatState']);
   if (stored.chatState) {
+    // Migration: Initialize providerCredentials if missing
+    if (!stored.chatState.providerCredentials) {
+      stored.chatState.providerCredentials = {
+        openai: { apiKey: '' },
+        openrouter: { apiKey: '' },
+        anthropic: { apiKey: '' },
+        huggingface: { apiKey: '' },
+        ollama: { endpoint: 'http://localhost:11434' },
+        bedrock: {
+          accessKey: '',
+          secretKey: '',
+          sessionToken: '',
+          region: 'us-east-1'
+        }
+      };
+
+      // Migrate old credentials to provider-specific storage
+      if (stored.chatState.apiKey) {
+        const provider = stored.chatState.provider;
+        if (provider === 'openai' || provider === 'openrouter' ||
+            provider === 'anthropic' || provider === 'huggingface') {
+          stored.chatState.providerCredentials[provider].apiKey = stored.chatState.apiKey;
+        }
+      }
+
+      if (stored.chatState.endpoint) {
+        stored.chatState.providerCredentials.ollama.endpoint = stored.chatState.endpoint;
+      }
+
+      if (stored.chatState.awsAccessKey) {
+        stored.chatState.providerCredentials.bedrock.accessKey = stored.chatState.awsAccessKey;
+      }
+      if (stored.chatState.awsSecretKey) {
+        stored.chatState.providerCredentials.bedrock.secretKey = stored.chatState.awsSecretKey;
+      }
+      if (stored.chatState.awsSessionToken) {
+        stored.chatState.providerCredentials.bedrock.sessionToken = stored.chatState.awsSessionToken;
+      }
+      if (stored.chatState.awsRegion) {
+        stored.chatState.providerCredentials.bedrock.region = stored.chatState.awsRegion;
+      }
+    }
+
+    // Ensure defaults for Ollama and Bedrock
+    if (!state.providerCredentials.ollama.endpoint) {
+      state.providerCredentials.ollama.endpoint = 'http://localhost:11434';
+    }
+    if (!state.providerCredentials.bedrock.region) {
+      state.providerCredentials.bedrock.region = 'us-east-1';
+    }
+
     // Migration logic for old state
     if (stored.chatState.messages && !stored.chatState.sessions) {
       const legacySession = {
