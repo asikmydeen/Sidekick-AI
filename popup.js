@@ -27,11 +27,10 @@ if (typeof chrome === 'undefined' || !chrome.storage) {
       onMessage: { addListener: () => {} }
     },
     tabs: {
-      query: async () => [{ id: 1 }] // Mock active tab
+      query: async () => [{ id: 1 }]
     },
     scripting: {
       executeScript: async ({ target, func }) => {
-        // Mock content for preview
         return [{ result: "This is a mock page content from the web preview mode.\n\nIt simulates what the extension would read from a real webpage." }];
       }
     }
@@ -41,14 +40,17 @@ if (typeof chrome === 'undefined' || !chrome.storage) {
 // DOM Elements
 const configSection = document.getElementById('configSection');
 const chatSection = document.getElementById('chatSection');
+const advancedSettings = document.getElementById('advancedSettings');
 const providerSelect = document.getElementById('provider');
 const apiKeyInput = document.getElementById('apiKey');
 const fetchModelsBtn = document.getElementById('fetchModelsBtn');
 const fetchStatus = document.getElementById('fetchStatus');
 const modelSelect = document.getElementById('model');
 const modelSelectionDiv = document.getElementById('modelSelection');
-const systemPromptDiv = document.getElementById('systemPromptDiv');
 const systemPromptInput = document.getElementById('systemPrompt');
+const temperatureInput = document.getElementById('temperature');
+const tempValueLabel = document.getElementById('tempValue');
+const quickPromptsInput = document.getElementById('quickPromptsConfig');
 const startChatBtn = document.getElementById('startChatBtn');
 const settingsBtn = document.getElementById('settingsBtn');
 const clearChatBtn = document.getElementById('clearChatBtn');
@@ -59,6 +61,14 @@ const messageInput = document.getElementById('messageInput');
 const sendBtn = document.getElementById('sendBtn');
 const stopBtn = document.getElementById('stopBtn');
 const includePageContent = document.getElementById('includePageContent');
+const promptChipsContainer = document.getElementById('promptChips');
+
+// Default Quick Prompts
+const DEFAULT_QUICK_PROMPTS = 
+`Summarize|Summarize the key points of the following content:
+Explain|Explain this concept in simple terms:
+Fix Grammar|Please fix the grammar in this text:
+Code Review|Review this code for bugs and improvements:`;
 
 // State
 let state = {
@@ -66,8 +76,10 @@ let state = {
   apiKey: '',
   model: '',
   systemPrompt: '',
+  temperature: 0.7,
+  quickPrompts: DEFAULT_QUICK_PROMPTS,
   theme: 'light',
-  messages: [] // Array of { role, content }
+  messages: []
 };
 
 let abortController = null;
@@ -79,25 +91,34 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   if (stored.chatState) {
     state = { ...state, ...stored.chatState };
-    
-    // Restore Theme
+    // Ensure defaults if missing (for upgrades)
+    if (state.temperature === undefined) state.temperature = 0.7;
+    if (!state.quickPrompts) state.quickPrompts = DEFAULT_QUICK_PROMPTS;
+
+    // Restore UI
     applyTheme(state.theme);
-    
-    // Pre-fill fields
     if (state.provider) providerSelect.value = state.provider;
     if (state.apiKey) apiKeyInput.value = state.apiKey;
     if (state.systemPrompt) systemPromptInput.value = state.systemPrompt;
+    if (state.temperature) {
+      temperatureInput.value = state.temperature;
+      tempValueLabel.textContent = state.temperature;
+    }
+    if (state.quickPrompts) quickPromptsInput.value = state.quickPrompts;
     
-    // Restore Model UI if we have state
+    // Restore Model UI
     if (state.model) {
        if (state.messages.length > 0) {
          modelSelect.innerHTML = `<option value="${state.model}" selected>${state.model}</option>`;
          modelSelectionDiv.classList.remove('hidden');
-         systemPromptDiv.classList.remove('hidden');
+         advancedSettings.classList.remove('hidden');
          startChatBtn.classList.remove('hidden');
          switchToChat();
        }
     }
+  } else {
+    // Fresh install default
+    quickPromptsInput.value = DEFAULT_QUICK_PROMPTS;
   }
 });
 
@@ -107,6 +128,10 @@ themeBtn.addEventListener('click', () => {
   state.theme = state.theme === 'light' ? 'dark' : 'light';
   applyTheme(state.theme);
   saveState();
+});
+
+temperatureInput.addEventListener('input', (e) => {
+  tempValueLabel.textContent = e.target.value;
 });
 
 exportBtn.addEventListener('click', () => {
@@ -151,20 +176,18 @@ fetchModelsBtn.addEventListener('click', async () => {
 
   showStatus('Fetching models...', 'info');
   modelSelectionDiv.classList.add('hidden');
-  systemPromptDiv.classList.add('hidden');
+  advancedSettings.classList.add('hidden');
   startChatBtn.classList.add('hidden');
   modelSelect.innerHTML = '<option value="" disabled selected>Select a model...</option>';
 
   try {
     const models = await fetchModels(provider, key);
-    if (models.length === 0) {
-      throw new Error('No models found.');
-    }
+    if (models.length === 0) throw new Error('No models found.');
     
     populateModelSelect(models);
     showStatus(`Found ${models.length} models.`, 'success');
     modelSelectionDiv.classList.remove('hidden');
-    systemPromptDiv.classList.remove('hidden');
+    advancedSettings.classList.remove('hidden');
     startChatBtn.classList.remove('hidden');
   } catch (err) {
     console.error(err);
@@ -175,7 +198,7 @@ fetchModelsBtn.addEventListener('click', async () => {
       const defaults = ['claude-3-5-sonnet-20240620', 'claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307'];
       populateModelSelect(defaults);
       modelSelectionDiv.classList.remove('hidden');
-      systemPromptDiv.classList.remove('hidden');
+      advancedSettings.classList.remove('hidden');
       startChatBtn.classList.remove('hidden');
     }
   }
@@ -189,6 +212,8 @@ startChatBtn.addEventListener('click', () => {
   }
   state.model = selectedModel;
   state.systemPrompt = systemPromptInput.value.trim();
+  state.temperature = parseFloat(temperatureInput.value);
+  state.quickPrompts = quickPromptsInput.value.trim();
   saveState();
   
   switchToChat();
@@ -221,8 +246,6 @@ stopBtn.addEventListener('click', () => {
   if (abortController) {
     abortController.abort();
     abortController = null;
-    
-    // UI Cleanup
     const loadingEl = document.querySelector('.typing-dots').closest('.message');
     if (loadingEl) {
       loadingEl.textContent = '[Stopped by user]';
@@ -244,19 +267,15 @@ chatHistory.addEventListener('click', (e) => {
     const btn = e.target;
     const codeBlock = btn.nextElementSibling.querySelector('code');
     const text = codeBlock.textContent;
-    
     navigator.clipboard.writeText(text).then(() => {
       const originalText = btn.textContent;
       btn.textContent = 'Copied!';
       setTimeout(() => btn.textContent = originalText, 2000);
-    }).catch(err => {
-      console.error('Failed to copy:', err);
-      btn.textContent = 'Error';
     });
   }
 });
 
-// --- Logic Functions ---
+// --- UI Logic ---
 
 function applyTheme(theme) {
   if (theme === 'dark') {
@@ -267,6 +286,58 @@ function applyTheme(theme) {
     themeBtn.textContent = '🌙';
   }
 }
+
+function renderChips() {
+  promptChipsContainer.innerHTML = '';
+  const lines = state.quickPrompts.split('\n');
+  lines.forEach(line => {
+    if (!line.trim()) return;
+    const parts = line.split('|');
+    const label = parts[0].trim();
+    const prompt = parts.length > 1 ? parts.slice(1).join('|').trim() : label;
+    
+    if (!label) return;
+
+    const btn = document.createElement('button');
+    btn.className = 'chip';
+    btn.textContent = label;
+    btn.title = prompt;
+    btn.addEventListener('click', () => {
+      messageInput.value = prompt + " ";
+      messageInput.focus();
+      // Auto-resize
+      messageInput.style.height = 'auto';
+      messageInput.style.height = (messageInput.scrollHeight) + 'px';
+    });
+    promptChipsContainer.appendChild(btn);
+  });
+}
+
+function switchToChat() {
+  configSection.classList.add('hidden');
+  chatSection.classList.remove('hidden');
+  settingsBtn.style.display = 'block';
+  clearChatBtn.classList.remove('hidden');
+  exportBtn.classList.remove('hidden');
+  renderChips();
+  renderChat();
+}
+
+function renderChat() {
+  chatHistory.innerHTML = '';
+  const intro = document.createElement('div');
+  intro.className = 'status-msg';
+  intro.textContent = `Chatting with ${state.model}`;
+  chatHistory.appendChild(intro);
+
+  state.messages.forEach(msg => {
+    appendMessageToDOM(msg.role, msg.content);
+  });
+  
+  chatHistory.scrollTop = chatHistory.scrollHeight;
+}
+
+// --- Backend Logic ---
 
 async function fetchModels(provider, key) {
   let url = '';
@@ -279,22 +350,18 @@ async function fetchModels(provider, key) {
       headers = { 'Authorization': `Bearer ${key}` };
       transform = (data) => data.data.map(m => m.id).filter(id => id.startsWith('gpt')).sort();
       break;
-      
     case 'openrouter':
       url = 'https://openrouter.ai/api/v1/models';
       headers = { 'Authorization': `Bearer ${key}` };
       transform = (data) => data.data.map(m => m.id).sort();
       break;
-
     case 'huggingface':
       url = 'https://huggingface.co/api/models?pipeline_tag=text-generation&sort=downloads&direction=-1&limit=50';
       headers = { 'Authorization': `Bearer ${key}` };
       transform = (data) => data.map(m => m.id);
       break;
-
     case 'anthropic':
       throw new Error('Anthropic API does not support listing models.');
-      
     default:
       throw new Error('Unknown provider');
   }
@@ -304,7 +371,6 @@ async function fetchModels(provider, key) {
     const errorData = await response.text();
     throw new Error(`API Error ${response.status}: ${errorData}`);
   }
-  
   const data = await response.json();
   return transform(data);
 }
@@ -319,63 +385,26 @@ function populateModelSelect(models) {
   });
 }
 
-function switchToChat() {
-  configSection.classList.add('hidden');
-  chatSection.classList.remove('hidden');
-  settingsBtn.style.display = 'block';
-  clearChatBtn.classList.remove('hidden');
-  exportBtn.classList.remove('hidden');
-  renderChat();
-}
-
-function renderChat() {
-  chatHistory.innerHTML = '';
-  
-  const intro = document.createElement('div');
-  intro.className = 'status-msg';
-  intro.textContent = `Chatting with ${state.model}`;
-  chatHistory.appendChild(intro);
-
-  state.messages.forEach(msg => {
-    appendMessageToDOM(msg.role, msg.content);
-  });
-  
-  chatHistory.scrollTop = chatHistory.scrollHeight;
-}
-
-// --- Content Extraction ---
-
 async function getPageContent() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    
     if (!tab) return null;
-    
-    // Cannot script on chrome:// pages
-    if (tab.url.startsWith('chrome://')) {
-      return "Cannot read content from browser system pages.";
-    }
+    if (tab.url.startsWith('chrome://')) return "Cannot read system pages.";
 
     const results = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      func: () => {
-        return document.body.innerText;
-      }
+      func: () => document.body.innerText
     });
 
     if (results && results[0] && results[0].result) {
-      // Truncate to avoid token limits (approx 10k chars is safe for most modern models)
       const text = results[0].result;
-      return text.length > 10000 ? text.substring(0, 10000) + "\n...[Content Truncated]" : text;
+      return text.length > 10000 ? text.substring(0, 10000) + "\n...[Truncated]" : text;
     }
     return null;
   } catch (err) {
-    console.error("Failed to read page:", err);
     return `Error reading page: ${err.message}`;
   }
 }
-
-// --- Messaging ---
 
 function toggleLoading(isLoading) {
   if (isLoading) {
@@ -399,43 +428,31 @@ async function sendMessage() {
 
   toggleLoading(true);
 
-  // 1. Get Page Context if requested
   if (shouldIncludeContext) {
     const content = await getPageContent();
     if (content) {
       contextMsg = `\n\n--- Page Content ---\n${content}\n---------------------`;
-      // Don't show context in chat bubble to keep UI clean, but send it to API
-      // Or show a small note that context was sent.
       text += ` [Attached Page Context]`; 
     }
   }
 
-  // 2. Update UI
   const userMsg = { role: 'user', content: text };
-  
-  // Note: We save the text with the [Attached] marker to history
-  // But for the API, we will append the real content.
   state.messages.push(userMsg);
   saveState();
   
   appendMessageToDOM('user', text);
   messageInput.value = '';
   messageInput.style.height = '';
-  includePageContent.checked = false; // Reset toggle
+  includePageContent.checked = false;
 
-  // 3. Prepare API Prompt
-  // We use the actual text minus the [Attached] marker + real context for the API
   const apiPrompt = text.replace(' [Attached Page Context]', '') + contextMsg;
-
   const loadingId = 'loading-' + Date.now();
   appendMessageToDOM('assistant', null, loadingId, true);
 
-  // 4. Send
   abortController = new AbortController();
 
   try {
     const responseText = await callChatApi(apiPrompt, abortController.signal);
-    
     const loadingEl = document.getElementById(loadingId);
     if (loadingEl) loadingEl.remove();
     
@@ -445,10 +462,7 @@ async function sendMessage() {
     
     appendMessageToDOM('assistant', responseText);
   } catch (err) {
-    if (err.name === 'AbortError') {
-      // Handled in stop button click, but good to catch here too just in case
-      console.log('Generation stopped by user');
-    } else {
+    if (err.name !== 'AbortError') {
       const loadingEl = document.getElementById(loadingId);
       if (loadingEl) loadingEl.remove();
       appendMessageToDOM('error', `Error: ${err.message}`);
@@ -478,7 +492,6 @@ function appendMessageToDOM(role, text, id = null, isLoading = false) {
 
 function parseMarkdown(text) {
   let safeText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
   const codeBlocks = [];
   safeText = safeText.replace(/```([\s\S]*?)```/g, (match, code) => {
     codeBlocks.push(code);
@@ -496,18 +509,13 @@ function parseMarkdown(text) {
   safeText = safeText.replace(/\n/g, '<br>');
 
   safeText = safeText.replace(/__CODEBLOCK_(\d+)__/g, (match, index) => {
-    return `
-      <div class="code-wrapper">
-        <button class="copy-btn">Copy</button>
-        <pre><code>${codeBlocks[index]}</code></pre>
-      </div>`;
+    return `<div class="code-wrapper"><button class="copy-btn">Copy</button><pre><code>${codeBlocks[index]}</code></pre></div>`;
   });
-
   return safeText;
 }
 
 async function callChatApi(userPrompt, signal) {
-  const { provider, apiKey, model, messages, systemPrompt } = state;
+  const { provider, apiKey, model, messages, systemPrompt, temperature } = state;
   let url = '';
   let headers = {
     'Content-Type': 'application/json',
@@ -515,20 +523,8 @@ async function callChatApi(userPrompt, signal) {
   };
   let body = {};
 
-  // Build History
   const apiMessages = messages.map(m => ({ role: m.role, content: m.content }));
-  
-  // NOTE: The 'userPrompt' passed here contains the LATEST context-enriched message.
-  // We need to NOT treat the last message in state.messages as the prompt, 
-  // because that one is just "User typed X [Attached]". 
-  // Instead, we form a new temporary message list for this call.
-  
-  // Remove the last message from the history array we just built, 
-  // because we want to replace it with the enriched prompt.
-  // The last message in 'messages' is the one we just pushed in sendMessage().
   apiMessages.pop(); 
-  
-  // Add the enriched prompt as the latest user message
   apiMessages.push({ role: 'user', content: userPrompt });
 
   if (systemPrompt) apiMessages.unshift({ role: 'system', content: systemPrompt });
@@ -539,7 +535,7 @@ async function callChatApi(userPrompt, signal) {
       url = provider === 'openai' 
         ? 'https://api.openai.com/v1/chat/completions' 
         : 'https://openrouter.ai/api/v1/chat/completions';
-      body = { model: model, messages: apiMessages };
+      body = { model: model, messages: apiMessages, temperature: temperature };
       break;
 
     case 'anthropic':
@@ -550,6 +546,7 @@ async function callChatApi(userPrompt, signal) {
       body = {
         model: model,
         max_tokens: 1024,
+        temperature: temperature,
         system: systemPrompt || undefined,
         messages: apiMessages.filter(m => m.role !== 'system')
       };
@@ -560,17 +557,18 @@ async function callChatApi(userPrompt, signal) {
       const fullPrompt = systemPrompt 
         ? `${systemPrompt}\n\n${apiMessages.map(m => `${m.role}: ${m.content}`).join('\n')}`
         : apiMessages.map(m => `${m.role}: ${m.content}`).join('\n');
-      body = { inputs: fullPrompt, parameters: { max_new_tokens: 500, return_full_text: false } };
+      body = { 
+        inputs: fullPrompt, 
+        parameters: { max_new_tokens: 500, return_full_text: false, temperature: temperature } 
+      };
       break;
   }
 
   const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body), signal: signal });
-
   if (!response.ok) {
     const errText = await response.text();
     throw new Error(`Failed to send message: ${errText}`);
   }
-
   const data = await response.json();
 
   if (provider === 'openai' || provider === 'openrouter') {

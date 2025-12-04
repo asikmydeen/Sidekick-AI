@@ -39,3 +39,8 @@
 - Added "Stop" button to abort text generation mid-request
 - Added `scripting` permission to manifest.json for page content extraction
 - Added `chrome.scripting` and `chrome.tabs` to mock API for web preview stability
+
+## v1.6.0 – 2025-08-25
+- Added "Quick Shortcuts" (Prompt Chips): Customizable buttons for frequent prompts (e.g., Summarize, Explain)
+- Added Temperature Slider: Allows users to control model creativity (0.0 - 1.0)
+- Added new "Advanced Settings" section in configuration for managing system prompts and shortcuts
