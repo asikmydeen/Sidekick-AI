@@ -297,83 +297,53 @@ export async function* streamChatApi(state, newMsgContent, signal) {
 // ===== HuggingFace Multi-Modal Tasks =====
 
 /**
- * Text-to-Image generation using HuggingFace Inference
+ * Text-to-Image generation using HuggingFace Inference API
  * Returns a base64 data URL of the generated image
- * Supports third-party providers (fal-ai, replicate, etc.) with auto-detection
+ * Note: Only models with "Inference API (serverless)" support on HuggingFace work
  */
 export async function textToImage(model, prompt, apiKey, options = {}) {
-  // Provider routing - models that need specific providers
-  const providerMap = {
-    // fal-ai models
-    'Tongyi-MAI/Z-Image-Turbo': 'fal-ai',
-    'black-forest-labs/FLUX.1-dev': 'fal-ai',
-    'black-forest-labs/FLUX.1-schnell': 'fal-ai',
-    'fal/AuraFlow': 'fal-ai',
-    'fal/flux-pro': 'fal-ai',
-    // replicate models
-    'stability-ai/sdxl': 'replicate',
-    // hf-inference (default) models
-    'stabilityai/stable-diffusion-xl-base-1.0': 'hf-inference',
-    'runwayml/stable-diffusion-v1-5': 'hf-inference',
-    'CompVis/stable-diffusion-v1-4': 'hf-inference',
-    'stabilityai/stable-diffusion-2-1': 'hf-inference'
+  const url = `https://api-inference.huggingface.co/models/${model}`;
+
+  const body = {
+    inputs: prompt,
+    parameters: {
+      guidance_scale: options.guidanceScale || 7.5,
+      num_inference_steps: options.steps || 30,
+      width: options.width || 512,
+      height: options.height || 512,
+      negative_prompt: options.negativePrompt || ''
+    }
   };
 
-  // Try to auto-detect provider or use provided one
-  let provider = options.provider || providerMap[model];
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
 
-  // If no known provider, try providers in order (auto mode)
-  const providersToTry = provider ? [provider] : ['fal-ai', 'hf-inference', 'replicate'];
-
-  let lastError = null;
-
-  for (const tryProvider of providersToTry) {
-    try {
-      const url = `https://router.huggingface.co/${tryProvider}/models/${model}`;
-
-      const body = {
-        inputs: prompt,
-        parameters: {
-          guidance_scale: options.guidanceScale || 7.5,
-          num_inference_steps: options.steps || (tryProvider === 'fal-ai' ? 5 : 30),
-          width: options.width || 512,
-          height: options.height || 512,
-          negative_prompt: options.negativePrompt || ''
-        }
-      };
-
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body)
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        lastError = new Error(`${tryProvider}: ${response.status} - ${errorText}`);
-        continue; // Try next provider
+  if (!response.ok) {
+    const errorText = await response.text();
+    // Check if model is loading
+    if (response.status === 503) {
+      const errorJson = JSON.parse(errorText);
+      if (errorJson.estimated_time) {
+        throw new Error(`Model is loading, please wait ~${Math.ceil(errorJson.estimated_time)}s and try again`);
       }
-
-      // Response is binary image data
-      const blob = await response.blob();
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-
-    } catch (err) {
-      lastError = err;
-      continue; // Try next provider
     }
+    throw new Error(`Image generation failed (${response.status}): ${errorText}`);
   }
 
-  // All providers failed
-  throw lastError || new Error('Image generation failed with all providers');
+  // Response is binary image data
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 }
 
 /**

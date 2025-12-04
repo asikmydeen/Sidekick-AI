@@ -55,11 +55,11 @@ export const HF_TASK_MODELS = {
     'deepseek-ai/DeepSeek-R1-Distill-Qwen-32B'
   ],
   'text-to-image': [
-    'stabilityai/stable-diffusion-xl-base-1.0',
+    'Tongyi-MAI/Z-Image-Turbo',
     'black-forest-labs/FLUX.1-schnell',
-    'runwayml/stable-diffusion-v1-5',
-    'CompVis/stable-diffusion-v1-4',
-    'stabilityai/stable-diffusion-2-1'
+    'black-forest-labs/FLUX.1-dev',
+    'stabilityai/stable-diffusion-xl-base-1.0',
+    'runwayml/stable-diffusion-v1-5'
   ],
   'image-to-text': [
     'Salesforce/blip-image-captioning-large',
