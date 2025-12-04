@@ -698,6 +698,10 @@ select {
   overflow: hidden;
 }
 
+.think-block.streaming {
+  border-style: dashed;
+}
+
 .think-header {
   display: flex;
   align-items: center;
@@ -721,6 +725,10 @@ body.dark-mode .think-header:hover {
   color: var(--think-icon);
 }
 
+.think-block.streaming .think-icon {
+  animation: pulse 1.5s infinite;
+}
+
 .think-label {
   font-size: 13px;
   font-weight: 600;
@@ -742,20 +750,20 @@ body.dark-mode .think-header:hover {
 .think-content {
   max-height: 0;
   overflow: hidden;
-  transition: max-height var(--transition-normal);
+  transition: max-height 0.4s ease-in-out;
 }
 
 .think-block.expanded .think-content {
-  max-height: 500px;
-  overflow-y: auto;
+  max-height: 2000px;
 }
 
 .think-content-inner {
-  padding: 0 14px 14px;
+  padding: 12px 14px 14px;
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.7;
   color: var(--think-text);
-  opacity: 0.9;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
 /* Inline code */
