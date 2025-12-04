@@ -493,7 +493,7 @@ function parseMarkdown(text) {
   safeText = safeText.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
   safeText = safeText.replace(/\n/g, '<br>');
 
-  safeText = safeText.replace(/__CODEBLOCK_(\d+)__/g, (match, index) => {
+  safeText = safeText.replace(/__CODEBLOCK_(\d+)__/g, (_match, index) => {
     return `<div class="code-wrapper"><button class="copy-btn">Copy</button><pre><code>${codeBlocks[index]}</code></pre></div>`;
   });
   return safeText;
