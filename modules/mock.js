@@ -27,12 +27,15 @@ export function initMock() {
         onMessage: { addListener: () => {} }
       },
       tabs: {
-        query: async () => [{ id: 1 }]
+        query: async () => [{ id: 1, url: 'https://example.com' }]
       },
       scripting: {
         executeScript: async ({ target, func }) => {
           return [{ result: "This is a mock page content from the web preview mode.\n\nIt simulates what the extension would read from a real webpage." }];
         }
+      },
+      sidePanel: {
+        setPanelBehavior: async () => {}
       }
     };
   }
