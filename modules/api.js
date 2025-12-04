@@ -2,33 +2,6 @@
 import { signRequest } from './aws.js';
 import { state, getCurrentProviderCredentials } from './state.js';
 
-// Stream Ollama requests through service worker (bypasses CORS)
-function streamOllamaViaServiceWorker(url, body) {
-  return new Promise((resolve, reject) => {
-    const port = chrome.runtime.connect({ name: 'ollama-stream' });
-    const chunks = [];
-
-    port.onMessage.addListener((msg) => {
-      if (msg.error) {
-        reject(new Error(msg.error));
-      } else if (msg.chunk) {
-        chunks.push(msg.chunk);
-      } else if (msg.done) {
-        resolve(chunks);
-      }
-    });
-
-    port.onDisconnect.addListener(() => {
-      if (chunks.length === 0) {
-        reject(new Error('Connection closed without data'));
-      }
-    });
-
-    // Send the request
-    port.postMessage({ url, body });
-  });
-}
-
 export async function fetchModels(provider, credentials) {
   let url = '';
   let headers = {};
