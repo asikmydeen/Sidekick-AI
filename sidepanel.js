@@ -1,8 +1,8 @@
 // sidepanel.js
 import { initMock } from './modules/mock.js';
-import { 
-  state, loadState, updateState, 
-  createNewSession, deleteSession, switchSession, getCurrentSession, updateCurrentSession, deleteAllSessions 
+import {
+  state, loadState, updateState,
+  createNewSession, deleteSession, switchSession, getCurrentSession, updateCurrentSession, deleteAllSessions
 } from './modules/state.js';
 import * as UI from './modules/ui.js';
 import * as API from './modules/api.js';
@@ -17,7 +17,7 @@ let pendingAttachments = [];
 document.addEventListener('DOMContentLoaded', async () => {
   await loadState();
   UI.applyTheme(state.theme);
-  
+
   if (state.provider) {
     UI.elements.providerSelect.value = state.provider;
     handleProviderChange(state.provider);
@@ -26,8 +26,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (state.endpoint) UI.elements.endpointInput.value = state.endpoint;
   if (state.awsAccessKey) UI.elements.awsAccessKey.value = state.awsAccessKey;
   if (state.awsSecretKey) UI.elements.awsSecretKey.value = state.awsSecretKey;
+  if (state.awsSessionToken) UI.elements.awsSessionToken.value = state.awsSessionToken;
   if (state.awsRegion) UI.elements.awsRegion.value = state.awsRegion;
-  
+
   if (state.systemPrompt) UI.elements.systemPromptInput.value = state.systemPrompt;
   if (state.temperature) {
     UI.elements.temperatureInput.value = state.temperature;
@@ -76,7 +77,7 @@ UI.elements.settingsBtn.addEventListener('click', () => UI.toggleView('config'))
 UI.elements.startChatBtn.addEventListener('click', () => {
   const selectedModel = UI.elements.modelSelect.value;
   if (!selectedModel) return UI.showStatus('Please select a model.', 'error');
-  
+
   updateState({
     model: selectedModel,
     systemPrompt: UI.elements.systemPromptInput.value.trim(),
@@ -84,7 +85,7 @@ UI.elements.startChatBtn.addEventListener('click', () => {
     quickPrompts: UI.elements.quickPromptsInput.value.trim(),
     autoRead: UI.elements.autoReadInput.checked
   });
-  
+
   switchToChat();
 });
 
@@ -125,7 +126,7 @@ function handleDeleteSession(id) {
 UI.elements.exportBtn.addEventListener('click', () => {
   const session = getCurrentSession();
   if (!session || session.messages.length === 0) return alert('No history to export.');
-  
+
   let md = `# ${session.title}\n\n`;
   session.messages.forEach(msg => {
     if (Array.isArray(msg.content)) {
@@ -135,7 +136,7 @@ UI.elements.exportBtn.addEventListener('click', () => {
        md += `### ${msg.role}\n${msg.content}\n\n`;
     }
   });
-  
+
   const blob = new Blob([md], { type: 'text/markdown' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -164,7 +165,7 @@ UI.elements.fileInput.addEventListener('change', async (e) => {
     e.target.value = '';
     return;
   }
-  
+
   try {
     const text = await readFileAsText(file);
     if (/[\x00-\x08\x0E-\x1F]/.test(text)) {
@@ -177,32 +178,33 @@ UI.elements.fileInput.addEventListener('change', async (e) => {
     alert('Failed to read file. Please upload images or text files.');
     console.error(err);
   }
-  e.target.value = ''; 
+  e.target.value = '';
 });
 
 UI.elements.fetchModelsBtn.addEventListener('click', async () => {
   const provider = UI.elements.providerSelect.value;
   const key = UI.elements.apiKeyInput.value.trim();
   const endpoint = UI.elements.endpointInput.value.trim();
-  
+
   // AWS Credentials
   const awsAccessKey = UI.elements.awsAccessKey.value.trim();
   const awsSecretKey = UI.elements.awsSecretKey.value.trim();
+  const awsSessionToken = UI.elements.awsSessionToken.value.trim();
   const awsRegion = UI.elements.awsRegion.value.trim();
-  
+
   if (!provider) return UI.showStatus('Select a provider.', 'error');
-  
+
   if (provider === 'bedrock') {
     if (!awsAccessKey || !awsSecretKey) return UI.showStatus('Enter AWS Credentials.', 'error');
   } else if (provider !== 'ollama' && !key) {
     return UI.showStatus('Enter API Key.', 'error');
   }
 
-  updateState({ provider, apiKey: key, endpoint, awsAccessKey, awsSecretKey, awsRegion });
+  updateState({ provider, apiKey: key, endpoint, awsAccessKey, awsSecretKey, awsSessionToken, awsRegion });
   UI.showStatus('Fetching...', 'info');
 
   try {
-    const models = await API.fetchModels(provider, key, endpoint, { accessKey: awsAccessKey, secretKey: awsSecretKey, region: awsRegion });
+    const models = await API.fetchModels(provider, key, endpoint, { accessKey: awsAccessKey, secretKey: awsSecretKey, sessionToken: awsSessionToken, region: awsRegion });
     if (!models.length) throw new Error('No models found.');
     UI.populateModelSelect(models);
     UI.showStatus(`Found ${models.length} models.`, 'success');
@@ -236,12 +238,12 @@ UI.elements.stopBtn.addEventListener('click', () => {
 UI.elements.micBtn.addEventListener('click', () => {
   if (!('webkitSpeechRecognition' in window)) return alert('Voice not supported.');
   if (recognition) { recognition.stop(); return; }
-  
+
   recognition = new webkitSpeechRecognition();
   recognition.continuous = false;
   recognition.interimResults = true;
   recognition.lang = 'en-US';
-  
+
   recognition.onstart = () => {
     UI.elements.micBtn.classList.add('listening');
     UI.elements.messageInput.placeholder = "Listening...";
@@ -266,7 +268,7 @@ function switchToChat() {
     UI.elements.messageInput.value = prompt + " ";
     UI.elements.messageInput.focus();
   });
-  
+
   const session = getCurrentSession();
   UI.renderChat(session ? session.messages : [], state.model);
 }
@@ -278,10 +280,10 @@ async function sendMessage() {
   const session = getCurrentSession();
   if (!session) return;
 
-  UI.stopSpeaking(); 
+  UI.stopSpeaking();
   const includePage = UI.elements.includePageContent.checked;
   let finalText = text;
-  
+
   UI.toggleLoading(true);
 
   if (includePage) {
@@ -302,12 +304,12 @@ async function sendMessage() {
 
   session.messages.push({ role: 'user', content: messageContent });
   updateCurrentSession(session.messages);
-  
+
   UI.appendMessageToDOM('user', messageContent);
   UI.elements.messageInput.value = '';
   UI.elements.includePageContent.checked = false;
   UI.autoResizeInput();
-  
+
   pendingAttachments = [];
   UI.renderAttachments([], () => {});
 
@@ -319,21 +321,21 @@ async function sendMessage() {
 
   try {
     const stream = API.streamChatApi(state, messageContent, abortController.signal);
-    
+
     for await (const chunk of stream) {
       fullResponse += chunk;
       UI.updateStreamingMessage(msgId, fullResponse);
     }
-    
+
     session.messages.push({ role: 'assistant', content: fullResponse });
     updateCurrentSession(session.messages);
     UI.updateTokenCount(session.messages);
-    
+
     UI.finalizeMessageInDOM(msgId, fullResponse);
     if (state.autoRead) {
       UI.speakText(fullResponse);
     }
-    
+
   } catch (err) {
     if (err.name !== 'AbortError') {
       UI.removeMessage(msgId);
