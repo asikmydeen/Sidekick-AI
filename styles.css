@@ -1098,18 +1098,18 @@ body.full-page-mode #chatSection {
 /* Chat history - centered with max width */
 body.full-page-mode .chat-history {
   flex: 1;
-  max-width: 900px;
+  max-width: 1200px;
   width: 100%;
   margin: 0 auto;
-  padding: 32px 40px;
-  gap: 20px;
+  padding: 24px 32px;
+  gap: 16px;
   overflow-y: auto;
   background: transparent;
 }
 
 /* Input wrapper - centered with max width, floating card style */
 body.full-page-mode .chat-input-wrapper {
-  max-width: 900px;
+  max-width: 1200px;
   width: calc(100% - 48px);
   margin: 0 auto 24px;
   border: 1px solid var(--border-color);
@@ -1120,7 +1120,7 @@ body.full-page-mode .chat-input-wrapper {
 
 /* Messages - wider in full page */
 body.full-page-mode .message {
-  max-width: 75%;
+  max-width: 90%;
   padding: 16px 22px;
   font-size: 15px;
   line-height: 1.7;
