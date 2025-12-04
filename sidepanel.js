@@ -179,7 +179,8 @@ function updateManualModelVisibility(provider) {
 function updateHfTaskHint(task) {
   const hints = {
     'chat': 'e.g., <code>meta-llama/Llama-3.2-3B-Instruct</code>, <code>deepseek-ai/DeepSeek-V3:novita</code>',
-    'text-to-image': 'e.g., <code>black-forest-labs/FLUX.1-dev</code>, <code>stabilityai/stable-diffusion-xl-base-1.0</code>',
+    'text-to-image': 'e.g., <code>black-forest-labs/FLUX.1-dev</code>, <code>Tongyi-MAI/Z-Image-Turbo</code>',
+    'image-to-image': 'e.g., <code>black-forest-labs/FLUX.1-dev</code> (attach an image + enter transformation prompt)',
     'text-to-video': 'e.g., <code>ali-vilab/text-to-video-ms-1.7b</code>, <code>cerspense/zeroscope_v2_576w</code>',
     'image-to-text': 'e.g., <code>Salesforce/blip-image-captioning-large</code>',
     'text-to-speech': 'e.g., <code>facebook/mms-tts-eng</code>, <code>suno/bark-small</code>',
