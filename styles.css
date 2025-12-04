@@ -438,62 +438,66 @@ body.full-page-mode .container {
   height: 100vh;
 }
 
-body.full-page-mode .header {
-  padding: 12px 40px;
-  justify-content: center;
-  gap: 20px;
+/* Header in full-page mode - normal flex layout, no positioning tricks */
+body.full-page-mode header {
+  padding: 12px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 body.full-page-mode .header-left {
-  position: absolute;
-  left: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-body.full-page-mode .header-actions {
-  position: absolute;
-  right: 20px;
+body.full-page-mode .header-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-body.full-page-mode .header h1 {
-  font-size: 20px;
+body.full-page-mode .header-left h1 {
+  font-size: 18px;
+  margin: 0;
 }
 
-body.full-page-mode .chat-view {
-  display: grid;
-  grid-template-columns: 1fr minmax(600px, 850px) 1fr;
-  grid-template-rows: 1fr auto;
-  height: calc(100vh - 60px);
-  background: var(--bg-color);
+/* Chat section takes up remaining space */
+body.full-page-mode #chatSection {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 56px);
 }
 
-body.full-page-mode .chat-spacer {
-  display: block;
-}
-
+/* Hide the spacers in sidebar mode */
 .chat-spacer {
   display: none;
 }
 
+/* Chat history - centered with max width */
 body.full-page-mode .chat-history {
-  grid-column: 2;
-  grid-row: 1;
-  max-height: calc(100vh - 200px);
-  padding: 30px 10px;
+  flex: 1;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px 32px;
   gap: 16px;
   overflow-y: auto;
 }
 
+/* Input wrapper - centered with max width */
 body.full-page-mode .chat-input-wrapper {
-  grid-column: 2;
-  grid-row: 2;
-  border-radius: 16px 16px 0 0;
-  margin: 0 0 20px 0;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  border-top: 1px solid var(--border-color);
   background: var(--header-bg);
 }
 
+/* Messages - wider in full page */
 body.full-page-mode .message {
-  max-width: 100%;
+  max-width: 80%;
   padding: 14px 18px;
   font-size: 15px;
   line-height: 1.6;
@@ -510,6 +514,7 @@ body.full-page-mode .message.assistant {
   padding-bottom: 30px;
 }
 
+/* Media containers */
 body.full-page-mode .generated-media-container {
   padding: 16px;
   background: rgba(0, 0, 0, 0.05);
@@ -524,6 +529,7 @@ body.full-page-mode .generated-video {
   border-radius: 12px;
 }
 
+/* Input area improvements */
 body.full-page-mode .chat-input-area textarea {
   font-size: 15px;
   padding: 14px 18px;
