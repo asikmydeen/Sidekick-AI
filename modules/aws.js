@@ -37,9 +37,15 @@ export async function signRequest({ method, url, headers, body, accessKey, secre
     headers['x-amz-security-token'] = sessionToken;
   }
 
+  // Normalize headers to lowercase keys for signature calculation
+  const normalizedHeaders = {};
+  Object.keys(headers).forEach(key => {
+    normalizedHeaders[key.toLowerCase()] = headers[key];
+  });
+
   // Canonical Headers
   const sortedHeaderKeys = Object.keys(headers).map(k => k.toLowerCase()).sort();
-  const canonicalHeaders = sortedHeaderKeys.map(k => `${k}:${headers[k].trim()}\n`).join('');
+  const canonicalHeaders = sortedHeaderKeys.map(k => `${k}:${normalizedHeaders[k].trim()}\n`).join('');
   const signedHeaders = sortedHeaderKeys.join(';');
 
   // Payload Hash
