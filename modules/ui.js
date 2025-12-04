@@ -193,9 +193,17 @@ export function isFullPageMode() {
 export function initFullPageMode() {
   if (isFullPageMode()) {
     document.body.classList.add('full-page-mode');
-    // Hide expand button in full page mode
+    // Hide expand button, show collapse button in full page mode
     if (elements.expandBtn) {
       elements.expandBtn.classList.add('hidden');
+    }
+    if (elements.collapseBtn) {
+      elements.collapseBtn.classList.remove('hidden');
+    }
+  } else {
+    // Sidebar mode - hide collapse button
+    if (elements.collapseBtn) {
+      elements.collapseBtn.classList.add('hidden');
     }
   }
 }
