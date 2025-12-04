@@ -43,6 +43,8 @@ const systemPromptInput = document.getElementById('systemPrompt');
 const startChatBtn = document.getElementById('startChatBtn');
 const settingsBtn = document.getElementById('settingsBtn');
 const clearChatBtn = document.getElementById('clearChatBtn');
+const exportBtn = document.getElementById('exportBtn');
+const themeBtn = document.getElementById('themeBtn');
 const chatHistory = document.getElementById('chatHistory');
 const messageInput = document.getElementById('messageInput');
 const sendBtn = document.getElementById('sendBtn');
@@ -53,6 +55,7 @@ let state = {
   apiKey: '',
   model: '',
   systemPrompt: '',
+  theme: 'light',
   messages: [] // Array of { role, content }
 };
 
@@ -64,6 +67,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (stored.chatState) {
     state = { ...state, ...stored.chatState };
     
+    // Restore Theme
+    applyTheme(state.theme);
+    
     // Pre-fill fields
     if (state.provider) providerSelect.value = state.provider;
     if (state.apiKey) apiKeyInput.value = state.apiKey;
@@ -71,10 +77,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Restore Model UI if we have state
     if (state.model) {
-       // Show the UI elements for model/system prompt even if we need to fetch logic later
-       // But usually, we only go to chat if we have a model.
        if (state.messages.length > 0) {
-         // Fake the model option so we don't look empty
+         // Fake the model option
          modelSelect.innerHTML = `<option value="${state.model}" selected>${state.model}</option>`;
          modelSelectionDiv.classList.remove('hidden');
          systemPromptDiv.classList.remove('hidden');
@@ -86,6 +90,39 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // --- Event Listeners ---
+
+themeBtn.addEventListener('click', () => {
+  state.theme = state.theme === 'light' ? 'dark' : 'light';
+  applyTheme(state.theme);
+  saveState();
+});
+
+exportBtn.addEventListener('click', () => {
+  if (state.messages.length === 0) {
+    alert('No chat history to export.');
+    return;
+  }
+  
+  let mdContent = `# Chat Export - ${state.model}\n\n`;
+  if (state.systemPrompt) {
+    mdContent += `**System Instructions**: ${state.systemPrompt}\n\n---\n\n`;
+  }
+  
+  state.messages.forEach(msg => {
+    const role = msg.role === 'user' ? 'User' : 'AI';
+    mdContent += `### ${role}\n${msg.content}\n\n`;
+  });
+  
+  const blob = new Blob([mdContent], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `chat-export-${new Date().toISOString().slice(0,10)}.md`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
 
 fetchModelsBtn.addEventListener('click', async () => {
   const provider = providerSelect.value;
@@ -150,6 +187,7 @@ settingsBtn.addEventListener('click', () => {
   chatSection.classList.add('hidden');
   settingsBtn.style.display = 'none';
   clearChatBtn.classList.add('hidden');
+  exportBtn.classList.add('hidden');
 });
 
 clearChatBtn.addEventListener('click', () => {
@@ -160,7 +198,6 @@ clearChatBtn.addEventListener('click', () => {
   }
 });
 
-// Auto-expand textarea
 messageInput.addEventListener('input', function() {
   this.style.height = 'auto';
   this.style.height = (this.scrollHeight) + 'px';
@@ -175,7 +212,7 @@ messageInput.addEventListener('keypress', (e) => {
   }
 });
 
-// Copy Code Button Delegation
+// Copy Code Button
 chatHistory.addEventListener('click', (e) => {
   if (e.target.classList.contains('copy-btn')) {
     const btn = e.target;
@@ -194,6 +231,16 @@ chatHistory.addEventListener('click', (e) => {
 });
 
 // --- Logic Functions ---
+
+function applyTheme(theme) {
+  if (theme === 'dark') {
+    document.body.classList.add('dark-mode');
+    themeBtn.textContent = '☀️';
+  } else {
+    document.body.classList.remove('dark-mode');
+    themeBtn.textContent = '🌙';
+  }
+}
 
 async function fetchModels(provider, key) {
   let url = '';
@@ -251,6 +298,7 @@ function switchToChat() {
   chatSection.classList.remove('hidden');
   settingsBtn.style.display = 'block';
   clearChatBtn.classList.remove('hidden');
+  exportBtn.classList.remove('hidden');
   renderChat();
 }
 
@@ -279,10 +327,11 @@ async function sendMessage() {
   
   appendMessageToDOM('user', text);
   messageInput.value = '';
-  messageInput.style.height = ''; // Reset height
+  messageInput.style.height = '';
 
   const loadingId = 'loading-' + Date.now();
-  appendMessageToDOM('assistant', 'Thinking...', loadingId);
+  // Pass true for isLoading to show animation
+  appendMessageToDOM('assistant', null, loadingId, true);
 
   try {
     const responseText = await callChatApi(text);
@@ -302,12 +351,14 @@ async function sendMessage() {
   }
 }
 
-function appendMessageToDOM(role, text, id = null) {
+function appendMessageToDOM(role, text, id = null, isLoading = false) {
   const div = document.createElement('div');
   div.className = `message ${role}`;
   if (id) div.id = id;
   
-  if (role !== 'error' && role !== 'user' && text !== 'Thinking...') {
+  if (isLoading) {
+    div.innerHTML = `<div class="typing-dots"><span></span><span></span><span></span></div>`;
+  } else if (role !== 'error' && role !== 'user') {
     div.innerHTML = parseMarkdown(text);
   } else {
     div.textContent = text;
@@ -317,41 +368,25 @@ function appendMessageToDOM(role, text, id = null) {
   chatHistory.scrollTop = chatHistory.scrollHeight;
 }
 
-// Enhanced Vanilla Markdown Parser
 function parseMarkdown(text) {
   let safeText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-  // 1. Extract Code Blocks
   const codeBlocks = [];
   safeText = safeText.replace(/```([\s\S]*?)```/g, (match, code) => {
     codeBlocks.push(code);
     return `__CODEBLOCK_${codeBlocks.length - 1}__`;
   });
 
-  // 2. Headers: ### H3, ## H2, # H1
   safeText = safeText.replace(/^### (.*$)/gm, '<h3>$1</h3>');
   safeText = safeText.replace(/^## (.*$)/gm, '<h2>$1</h2>');
   safeText = safeText.replace(/^# (.*$)/gm, '<h1>$1</h1>');
-
-  // 3. Lists: - Item or * Item
-  // Simple replacement to bullet points (not true nested lists but visually okay)
   safeText = safeText.replace(/^[\*\-] (.*$)/gm, '<ul><li>$1</li></ul>');
-  // Fix adjacent ULs to merge them? Regex is hard for that. Let's just trust CSS margin.
-
-  // 4. Inline Code
-  safeText = safeText.replace(/`([^`]+)`/g, '<code style="background:#eee;padding:2px 4px;border-radius:4px;color:#d63384;">$1</code>');
-
-  // 5. Bold & Italic
+  safeText = safeText.replace(/`([^`]+)`/g, '<code style="background:rgba(128,128,128,0.2);padding:2px 4px;border-radius:4px;">$1</code>');
   safeText = safeText.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   safeText = safeText.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-  
-  // 6. Links [Title](url)
   safeText = safeText.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
-
-  // 7. Newlines to <br>
   safeText = safeText.replace(/\n/g, '<br>');
 
-  // Restore Code Blocks with Copy Button
   safeText = safeText.replace(/__CODEBLOCK_(\d+)__/g, (match, index) => {
     return `
       <div class="code-wrapper">
@@ -372,12 +407,8 @@ async function callChatApi(userMessage) {
   };
   let body = {};
 
-  // Build full message history including System Prompt
   const apiMessages = messages.map(m => ({ role: m.role, content: m.content }));
-  
-  if (systemPrompt) {
-    apiMessages.unshift({ role: 'system', content: systemPrompt });
-  }
+  if (systemPrompt) apiMessages.unshift({ role: 'system', content: systemPrompt });
 
   switch (provider) {
     case 'openai':
@@ -385,11 +416,7 @@ async function callChatApi(userMessage) {
       url = provider === 'openai' 
         ? 'https://api.openai.com/v1/chat/completions' 
         : 'https://openrouter.ai/api/v1/chat/completions';
-      
-      body = {
-        model: model,
-        messages: apiMessages
-      };
+      body = { model: model, messages: apiMessages };
       break;
 
     case 'anthropic':
@@ -397,38 +424,24 @@ async function callChatApi(userMessage) {
       headers['x-api-key'] = apiKey;
       headers['anthropic-version'] = '2023-06-01';
       delete headers['Authorization'];
-      
-      const anthropicSystem = systemPrompt || undefined;
-      const anthropicMessages = apiMessages.filter(m => m.role !== 'system');
-      
       body = {
         model: model,
         max_tokens: 1024,
-        system: anthropicSystem,
-        messages: anthropicMessages
+        system: systemPrompt || undefined,
+        messages: apiMessages.filter(m => m.role !== 'system')
       };
       break;
 
     case 'huggingface':
       url = `https://api-inference.huggingface.co/models/${model}`;
-      // HF is simple inference, constructing a prompt string is better than passing array usually
-      // For simplicity in this template, we just send user message + history as text block
       const fullPrompt = systemPrompt 
         ? `${systemPrompt}\n\n${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`
         : messages.map(m => `${m.role}: ${m.content}`).join('\n');
-
-      body = {
-        inputs: fullPrompt, 
-        parameters: { max_new_tokens: 500, return_full_text: false }
-      };
+      body = { inputs: fullPrompt, parameters: { max_new_tokens: 500, return_full_text: false } };
       break;
   }
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: headers,
-    body: JSON.stringify(body)
-  });
+  const response = await fetch(url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
 
   if (!response.ok) {
     const errText = await response.text();
@@ -442,9 +455,7 @@ async function callChatApi(userMessage) {
   } else if (provider === 'anthropic') {
     return data.content[0].text;
   } else if (provider === 'huggingface') {
-    if (Array.isArray(data) && data[0].generated_text) {
-      return data[0].generated_text;
-    }
+    if (Array.isArray(data) && data[0].generated_text) return data[0].generated_text;
     return JSON.stringify(data);
   }
 }

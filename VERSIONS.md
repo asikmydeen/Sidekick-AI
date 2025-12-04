@@ -28,3 +28,8 @@
 - Enhanced Markdown parser to support headers (h1-h3), links, and bullet lists
 - Added "Copy" buttons to all code blocks for easy clipboard access
 - Added auto-expanding chat input textarea for better UX
+
+## v1.4.0 – 2025-08-25
+- Added Dark Mode support with a toggle button in the header
+- Added "Export Chat" functionality to download history as a Markdown file
+- Added animated "typing dots" indicator for better visual feedback during API calls
