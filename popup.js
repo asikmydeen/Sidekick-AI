@@ -121,7 +121,7 @@ function handleDeleteSession(id) {
 
 UI.elements.exportBtn.addEventListener('click', () => {
   const session = getCurrentSession();
-  if (!session || session.messages.length === 0) return alert('No history to export.');
+  if (!session || session.messages.length ===0) return alert('No history to export.');
   
   let md = `# ${session.title}\n\n`;
   session.messages.forEach(msg => md += `### ${msg.role}\n${msg.content}\n\n`);
@@ -140,14 +140,28 @@ UI.elements.fileBtn.addEventListener('click', () => UI.elements.fileInput.click(
 UI.elements.fileInput.addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if (!file) return;
+
+  // Block multimedia files
+  if (file.type.startsWith('image/') || file.type.startsWith('video/') || file.type.startsWith('audio/')) {
+    alert('Multimedia files are not currently supported. Please upload text-based files (code, markdown, txt, etc).');
+    e.target.value = '';
+    return;
+  }
   
   try {
     const text = await readFileAsText(file);
+    
+    // Simple heuristic check for binary content
+    if (/[\x00-\x08\x0E-\x1F]/.test(text)) {
+      throw new Error("File content appears to be binary.");
+    }
+
     const context = `\n\n[File Attachment: ${file.name}]\n\`\`\`\n${text}\n\`\`\``;
     UI.elements.messageInput.value += context;
     UI.autoResizeInput();
   } catch (err) {
-    alert('Failed to read file. Only text files are supported.');
+    alert('Failed to read file. It may be binary or an unsupported format.');
+    console.error(err);
   }
   e.target.value = ''; // Reset
 });

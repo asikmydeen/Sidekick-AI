@@ -62,3 +62,7 @@
 - **File Attachments**: Users can now attach text-based files (txt, code, md) to the chat context via a paperclip button.
 - **Token Usage**: Added a live token counter display to track context usage percentages.
 - **Refactored State**: Migrated state management to handle an array of sessions instead of a single message list.
+
+## v1.9.1 – 2025-08-25
+- **Bug Fix**: Restricted file attachments to text-based formats only.
+- Added validation to prevent image/binary files from being read as raw text, which previously caused garbage characters to appear in the chat input.
