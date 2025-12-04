@@ -44,3 +44,8 @@
 - Added "Quick Shortcuts" (Prompt Chips): Customizable buttons for frequent prompts (e.g., Summarize, Explain)
 - Added Temperature Slider: Allows users to control model creativity (0.0 - 1.0)
 - Added new "Advanced Settings" section in configuration for managing system prompts and shortcuts
+
+## v1.7.0 – 2025-08-25
+- Refactored `popup.js` into modular ES6 components (`modules/api.js`, `modules/ui.js`, `modules/state.js`, etc.)
+- Improved maintainability by separating UI logic, state management, and API calls
+- Updated `popup.html` to support module-based script loading
