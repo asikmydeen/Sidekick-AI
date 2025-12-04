@@ -52,7 +52,7 @@
         <label for="apiKey">API Key</label>
         <input type="password" id="apiKey" placeholder="sk-..." />
       </div>
-      
+
       <div class="form-group hidden" id="endpointGroup">
         <label for="endpoint">Ollama URL</label>
         <input type="text" id="endpoint" value="http://localhost:11434" placeholder="http://localhost:11434" />
@@ -67,6 +67,10 @@
         <div class="form-group">
           <label for="awsSecretKey">AWS Secret Access Key</label>
           <input type="password" id="awsSecretKey" placeholder="Secret Key..." />
+        </div>
+        <div class="form-group">
+          <label for="awsSessionToken">AWS Session Token (optional for temporary credentials)</label>
+          <input type="password" id="awsSessionToken" placeholder="Session Token..." />
         </div>
         <div class="form-group">
           <label for="awsRegion">AWS Region</label>
@@ -96,7 +100,7 @@
           </div>
           <input type="range" id="temperature" min="0" max="1" step="0.1" value="0.7">
         </div>
-        
+
         <div class="form-group">
           <label class="checkbox-label">
             <input type="checkbox" id="autoRead">
@@ -116,25 +120,25 @@
     <!-- Chat Interface -->
     <div id="chatSection" class="section hidden">
       <div id="chatHistory" class="chat-history"></div>
-      
+
       <div class="chat-input-wrapper">
         <div id="promptChips" class="prompt-chips"></div>
         <div id="attachmentPreview" class="attachment-preview"></div>
-        
+
         <div class="chat-controls">
            <span id="tokenCount" class="token-count">0 tokens</span>
            <label class="context-toggle" title="Send current page text to AI">
-             <input type="checkbox" id="includePageContent"> 
+             <input type="checkbox" id="includePageContent">
              <span>📄 Page</span>
            </label>
         </div>
-        
+
         <div class="chat-input-area">
           <input type="file" id="fileInput" class="hidden" accept="image/*, .txt, .md, .js, .py, .html, .css, .json, .csv, .ts, .tsx, .java, .c, .cpp" />
           <button id="fileBtn" class="icon-btn file-btn" title="Attach File/Image">📎</button>
-          
+
           <textarea id="messageInput" placeholder="Type your message..." rows="1"></textarea>
-          
+
           <button id="micBtn" class="icon-btn mic-btn" title="Voice Input">🎤</button>
           <button id="sendBtn" class="send-btn">➤</button>
           <button id="stopBtn" class="send-btn stop-btn hidden">⏹</button>

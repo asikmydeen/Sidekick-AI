@@ -39,6 +39,7 @@ export async function fetchModels(provider, key, endpoint = '', awsCreds = {}) {
         headers: { 'content-type': 'application/json' },
         accessKey: awsCreds.accessKey,
         secretKey: awsCreds.secretKey,
+        sessionToken: awsCreds.sessionToken,
         region,
         service: 'bedrock'
       });
@@ -59,12 +60,12 @@ export async function fetchModels(provider, key, endpoint = '', awsCreds = {}) {
 
 // Stream generator function
 export async function* streamChatApi(state, newMsgContent, signal) {
-  const { provider, apiKey, model, temperature, endpoint, systemPrompt, awsAccessKey, awsSecretKey, awsRegion } = state;
+  const { provider, apiKey, model, temperature, endpoint, systemPrompt, awsAccessKey, awsSecretKey, awsSessionToken, awsRegion } = state;
   const messages = state.sessions.find(s => s.id === state.currentSessionId)?.messages || [];
-  
+
   let url = '';
   let headers = { 'Content-Type': 'application/json' };
-  
+
   // Prepare history
   const history = [];
   if (systemPrompt && provider !== 'bedrock') history.push({ role: 'system', content: systemPrompt });
@@ -74,13 +75,13 @@ export async function* streamChatApi(state, newMsgContent, signal) {
   if (provider === 'openai' || provider === 'openrouter') {
     if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
     history.push(...rawMessages);
-    
+
     url = provider === 'openai' ? 'https://api.openai.com/v1/chat/completions' : 'https://openrouter.ai/api/v1/chat/completions';
     const body = { model, messages: history, stream: true, temperature };
-    
+
     const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal });
     if (!response.ok) throw new Error(await response.text());
-    
+
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     while (true) {
@@ -101,7 +102,7 @@ export async function* streamChatApi(state, newMsgContent, signal) {
   } else if (provider === 'ollama') {
      const base = endpoint ? endpoint.replace(/\/$/, '') : 'http://localhost:11434';
      url = `${base}/api/chat`;
-     
+
      const ollamaMessages = rawMessages.map(msg => {
         if (Array.isArray(msg.content)) {
           let text = "";
@@ -143,10 +144,10 @@ export async function* streamChatApi(state, newMsgContent, signal) {
      // Bedrock Non-Streaming (Simple Implementation for now)
      // To support streaming with AWS SigV4 via REST without SDK requires complex event-stream binary parsing.
      // Fallback to non-streaming invocation for stability.
-     
+
      const region = awsRegion || 'us-east-1';
      url = `https://bedrock-runtime.${region}.amazonaws.com/model/${model}/converse`;
-     
+
      const bedrockMessages = rawMessages.map(m => {
         const contentBlock = [];
         if (Array.isArray(m.content)) {
@@ -164,7 +165,7 @@ export async function* streamChatApi(state, newMsgContent, signal) {
        inferenceConfig: { temperature, maxTokens: 2048 }
      };
      if (systemPrompt) bodyObj.system = [{ text: systemPrompt }];
-     
+
      const body = JSON.stringify(bodyObj);
      const signedHeaders = await signRequest({
         method: 'POST',
@@ -173,13 +174,14 @@ export async function* streamChatApi(state, newMsgContent, signal) {
         body,
         accessKey: awsAccessKey,
         secretKey: awsSecretKey,
+        sessionToken: awsSessionToken,
         region,
         service: 'bedrock'
      });
 
      const response = await fetch(url, { method: 'POST', headers: signedHeaders, body, signal });
      if (!response.ok) throw new Error(await response.text());
-     
+
      const json = await response.json();
      const text = json.output?.message?.content?.[0]?.text || '';
      yield text;
