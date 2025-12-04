@@ -426,26 +426,140 @@ select, input, textarea { width: 100%; padding: 8px; border: 1px solid var(--bor
 
 /* Full Page Mode */
 body.full-page-mode {
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
 }
 
 body.full-page-mode .container {
   max-width: 100%;
+  width: 100%;
+  height: 100vh;
+}
+
+body.full-page-mode .header {
+  padding: 12px 40px;
+  justify-content: center;
+  gap: 20px;
+}
+
+body.full-page-mode .header-left {
+  position: absolute;
+  left: 20px;
+}
+
+body.full-page-mode .header-actions {
+  position: absolute;
+  right: 20px;
+}
+
+body.full-page-mode .header h1 {
+  font-size: 20px;
+}
+
+body.full-page-mode .chat-view {
+  display: grid;
+  grid-template-columns: 1fr minmax(700px, 900px) 1fr;
+  height: calc(100vh - 60px);
 }
 
 body.full-page-mode .chat-history {
-  max-height: calc(100vh - 250px);
+  grid-column: 2;
+  max-height: calc(100vh - 180px);
+  padding: 30px 20px;
+  gap: 16px;
+}
+
+body.full-page-mode .chat-input-wrapper {
+  grid-column: 2;
+  border-radius: 16px 16px 0 0;
+  margin: 0;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+}
+
+body.full-page-mode .message {
+  max-width: 100%;
+  padding: 14px 18px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+body.full-page-mode .message.user {
+  background: linear-gradient(135deg, var(--primary-color), #3b82f6);
+  border-radius: 18px 18px 4px 18px;
+}
+
+body.full-page-mode .message.assistant {
+  background: var(--bot-msg-bg);
+  border-radius: 18px 18px 18px 4px;
+  padding-bottom: 30px;
+}
+
+body.full-page-mode .generated-media-container {
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  margin-top: 12px;
 }
 
 body.full-page-mode .generated-image,
 body.full-page-mode .generated-video {
-  max-height: 600px;
+  max-height: 500px;
   max-width: 100%;
+  border-radius: 12px;
 }
 
-body.full-page-mode .message {
-  max-width: 70%;
+body.full-page-mode .chat-input-area textarea {
+  font-size: 15px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  min-height: 50px;
+}
+
+body.full-page-mode .prompt-chips {
+  padding: 12px 20px 0;
+  gap: 10px;
+}
+
+body.full-page-mode .chip {
+  padding: 8px 16px;
+  font-size: 13px;
+  border-radius: 20px;
+}
+
+body.full-page-mode .send-btn {
+  width: 44px;
+  height: 44px;
+  font-size: 18px;
+}
+
+/* Config view in full-page mode */
+body.full-page-mode .config-view {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 30px;
+}
+
+body.full-page-mode .config-view h2 {
+  font-size: 24px;
+  margin-bottom: 24px;
+}
+
+body.full-page-mode .config-group {
+  margin-bottom: 24px;
+}
+
+body.full-page-mode .config-group label {
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+body.full-page-mode .config-group select,
+body.full-page-mode .config-group input,
+body.full-page-mode .config-group textarea {
+  font-size: 15px;
+  padding: 12px 14px;
 }
 
 /* Media Gallery */
