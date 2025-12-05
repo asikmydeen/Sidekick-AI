@@ -906,6 +906,12 @@ async function handleHuggingFaceTask(task, text, session) {
       default:
         UI.showStatus(`Unknown task: ${task}`, 'error');
     }
+
+    // Generate AI title after first exchange
+    if (session.title === 'New Chat' && session.messages.length >= 2) {
+      generateSessionTitle(session);
+    }
+
   } catch (err) {
     UI.appendMessageToDOM('error', `Error: ${err.message}`);
   } finally {
