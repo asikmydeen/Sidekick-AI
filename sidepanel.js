@@ -143,6 +143,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   UI.initFullPageMode(); // Initialize full-page mode if opened as tab
   UI.initThinkBlockHandlers(); // Initialize click handlers for think blocks
   UI.initCopyButtonHandlers(); // Initialize click handlers for code copy buttons
+  initKeyboardShortcuts(); // Initialize keyboard shortcuts
 
   if (state.provider) {
     UI.elements.providerSelect.value = state.provider;
