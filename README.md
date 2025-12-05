@@ -1,11 +1,11 @@
-# Dyad AI Chatbot
+# Sidekick AI
 
 <p align="center">
-  <img src="icon128.png" alt="Dyad AI Logo" width="128" height="128">
+  <img src="icon128.png" alt="Sidekick AI Logo" width="128" height="128">
 </p>
 
 <p align="center">
-  <strong>Your Universal AI Assistant in Chrome's Sidebar</strong>
+  <strong>Your AI Sidekick in Chrome's Sidebar</strong>
 </p>
 
 <p align="center">
@@ -146,4 +146,3 @@ Having issues? [Open an issue](https://github.com/yourusername/dyad-ai-chatbot/i
 ---
 
 <p align="center">Made with ❤️ for the AI community</p>
-
