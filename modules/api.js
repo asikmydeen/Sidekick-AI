@@ -459,6 +459,147 @@ export async function speechToText(model, audioData, apiKey, options = {}) {
 }
 
 /**
+ * Generate a concise title for a chat session based on its messages
+ * Uses the configured LLM provider to summarize the conversation
+ * @param {Object} state - The app state with provider/model configuration
+ * @param {Array} messages - The messages to summarize (at least one user + one assistant message)
+ * @returns {Promise<string|null>} - Generated title or null if generation fails
+ */
+export async function generateChatTitle(state, messages) {
+  if (!messages || messages.length < 2) return null;
+
+  const { provider, model, temperature } = state;
+  const credentials = getCurrentProviderCredentials();
+
+  if (!credentials) return null;
+
+  // Check if provider is configured (has required credentials)
+  const hasCredentials = (
+    (provider === 'openai' && credentials.apiKey) ||
+    (provider === 'openrouter' && credentials.apiKey) ||
+    (provider === 'anthropic' && credentials.apiKey) ||
+    (provider === 'huggingface' && credentials.apiKey) ||
+    (provider === 'ollama' && credentials.endpoint) ||
+    (provider === 'bedrock' && credentials.accessKey && credentials.secretKey)
+  );
+
+  if (!hasCredentials) return null;
+
+  // Build a summary prompt
+  const conversationSummary = messages.slice(0, 4).map(m => {
+    let text = '';
+    if (typeof m.content === 'string') {
+      text = m.content;
+    } else if (Array.isArray(m.content)) {
+      text = m.content.find(c => c.type === 'text')?.text || '[media]';
+    }
+    return `${m.role}: ${text.slice(0, 200)}`;
+  }).join('\n');
+
+  const titlePrompt = `Generate a very short title (max 5 words) for this conversation. Reply with ONLY the title, no quotes or punctuation:\n\n${conversationSummary}`;
+
+  try {
+    let generatedTitle = '';
+
+    if (provider === 'openai' || provider === 'openrouter') {
+      const url = provider === 'openai'
+        ? 'https://api.openai.com/v1/chat/completions'
+        : 'https://openrouter.ai/api/v1/chat/completions';
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${credentials.apiKey}`
+        },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: titlePrompt }],
+          max_tokens: 20,
+          temperature: 0.3
+        })
+      });
+
+      if (!response.ok) return null;
+      const json = await response.json();
+      generatedTitle = json.choices?.[0]?.message?.content?.trim() || '';
+
+    } else if (provider === 'ollama') {
+      const base = credentials.endpoint?.replace(/\/$/, '') || 'http://localhost:11434';
+      const response = await fetch(`${base}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: titlePrompt }],
+          stream: false
+        })
+      });
+
+      if (!response.ok) return null;
+      const json = await response.json();
+      generatedTitle = json.message?.content?.trim() || '';
+
+    } else if (provider === 'huggingface') {
+      const response = await fetch('https://router.huggingface.co/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${credentials.apiKey}`
+        },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: titlePrompt }],
+          max_tokens: 20,
+          temperature: 0.3
+        })
+      });
+
+      if (!response.ok) return null;
+      const json = await response.json();
+      generatedTitle = json.choices?.[0]?.message?.content?.trim() || '';
+
+    } else if (provider === 'bedrock') {
+      const region = credentials.region || 'us-east-1';
+      const url = `https://bedrock-runtime.${region}.amazonaws.com/model/${model}/converse`;
+      const body = JSON.stringify({
+        messages: [{ role: 'user', content: [{ text: titlePrompt }] }],
+        inferenceConfig: { temperature: 0.3, maxTokens: 20 }
+      });
+
+      const signedHeaders = await signRequest({
+        method: 'POST',
+        url,
+        headers: { 'content-type': 'application/json' },
+        body,
+        accessKey: credentials.accessKey,
+        secretKey: credentials.secretKey,
+        sessionToken: credentials.sessionToken,
+        region,
+        service: 'bedrock'
+      });
+
+      const response = await fetch(url, { method: 'POST', headers: signedHeaders, body });
+      if (!response.ok) return null;
+      const json = await response.json();
+      generatedTitle = json.output?.message?.content?.[0]?.text?.trim() || '';
+    }
+
+    // Clean up the title - remove quotes, limit length
+    generatedTitle = generatedTitle.replace(/^["']|["']$/g, '').trim();
+    if (generatedTitle.length > 50) {
+      generatedTitle = generatedTitle.slice(0, 47) + '...';
+    }
+
+    return generatedTitle || null;
+
+  } catch (err) {
+    console.warn('Failed to generate chat title:', err);
+    return null;
+  }
+}
+
+/**
  * Text-to-Video generation using HuggingFace Inference Client
  * Returns a base64 data URL of the generated video
  * Note: Video generation can take longer than image generation (30-120s)
