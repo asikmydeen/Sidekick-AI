@@ -3,15 +3,20 @@
   "name": "Sidekick AI",
   "version": "2.1.0",
   "description": "A chatbot extension connecting to OpenAI, Anthropic, Hugging Face, and OpenRouter.",
-  "permissions": ["storage", "activeTab", "scripting", "sidePanel", "nativeMessaging", "declarativeNetRequest"],
+  "permissions": ["storage", "activeTab", "scripting", "sidePanel"],
   "host_permissions": [
-    "<all_urls>",
+    "https://api.openai.com/*",
+    "https://api.anthropic.com/*",
+    "https://openrouter.ai/*",
+    "https://api-inference.huggingface.co/*",
+    "https://huggingface.co/*",
+    "https://*.amazonaws.com/*",
     "http://localhost/*",
     "http://127.0.0.1/*"
   ],
   "web_accessible_resources": [{
     "resources": ["ollama-bridge.html"],
-    "matches": ["<all_urls>"]
+    "matches": ["http://localhost/*", "http://127.0.0.1/*"]
   }],
   "action": {
     "default_title": "Open Sidekick AI",
