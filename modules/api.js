@@ -468,7 +468,7 @@ export async function speechToText(model, audioData, apiKey, options = {}) {
 export async function generateChatTitle(state, messages) {
   if (!messages || messages.length < 2) return null;
 
-  const { provider, model, temperature } = state;
+  const { provider, model } = state;
   const credentials = getCurrentProviderCredentials();
 
   if (!credentials) return null;
