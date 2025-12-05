@@ -96,8 +96,8 @@ Connect to your favorite AI services with a single extension:
 
 ### Local Development
 ```bash
-git clone https://github.com/yourusername/dyad-ai-chatbot.git
-cd dyad-ai-chatbot
+git clone https://github.com/yourusername/sidekick-ai.git
+cd sidekick-ai
 # Load the extension in Chrome:
 # 1. Go to chrome://extensions
 # 2. Enable "Developer mode"
@@ -141,7 +141,7 @@ OLLAMA_ORIGINS="*" ollama serve
 
 ## 🤝 Support
 
-Having issues? [Open an issue](https://github.com/yourusername/dyad-ai-chatbot/issues) on GitHub.
+Having issues? [Open an issue](https://github.com/yourusername/sidekick-ai/issues) on GitHub.
 
 ---
 
