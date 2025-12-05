@@ -682,6 +682,99 @@ function switchToChat() {
   }
 }
 
+/**
+ * Handle editing a user message
+ * @param {number} msgIndex - Index of the message to edit
+ * @param {string} currentText - Current text content of the message
+ */
+function handleEditMessage(msgIndex, currentText) {
+  const session = getCurrentSession();
+  if (!session) return;
+
+  // Put the text in the input field
+  UI.elements.messageInput.value = currentText;
+  UI.elements.messageInput.focus();
+  UI.autoResizeInput();
+
+  // Remove this message and all messages after it
+  session.messages = session.messages.slice(0, msgIndex);
+  updateCurrentSession(session.messages);
+
+  // Re-render the chat
+  UI.renderChat(session.messages, state.model);
+}
+
+/**
+ * Handle regenerating an assistant response
+ * @param {number} msgIndex - Index of the assistant message to regenerate
+ */
+async function handleRegenerateMessage(msgIndex) {
+  const session = getCurrentSession();
+  if (!session || msgIndex < 1) return;
+
+  // Find the user message before this assistant message
+  const userMsgIndex = msgIndex - 1;
+  const userMsg = session.messages[userMsgIndex];
+  if (!userMsg || userMsg.role !== 'user') return;
+
+  // Remove the assistant message and any messages after it
+  session.messages = session.messages.slice(0, msgIndex);
+  updateCurrentSession(session.messages);
+
+  // Re-render the chat
+  UI.renderChat(session.messages, state.model);
+
+  // Get the user message content
+  const userContent = userMsg.content;
+
+  // Create a new streaming message
+  const msgId = 'msg-' + Date.now();
+  UI.appendMessageToDOM('assistant', null, msgId, true);
+
+  abortController = new AbortController();
+  let fullResponse = "";
+  UI.toggleLoading(true);
+
+  try {
+    const stream = API.streamChatApi(state, userContent, abortController.signal);
+
+    for await (const chunk of stream) {
+      fullResponse += chunk;
+      UI.updateStreamingMessage(msgId, fullResponse);
+    }
+
+    session.messages.push({ role: 'assistant', content: fullResponse });
+    updateCurrentSession(session.messages);
+    UI.updateTokenCount(session.messages);
+    UI.finalizeMessageInDOM(msgId, fullResponse);
+
+    if (state.autoRead) {
+      UI.speakText(fullResponse);
+    }
+
+  } catch (err) {
+    if (err.name !== 'AbortError') {
+      UI.removeMessage(msgId);
+      UI.appendMessageToDOM('error', `Error: ${err.message}`);
+    } else {
+      if (fullResponse) {
+        session.messages.push({ role: 'assistant', content: fullResponse });
+        updateCurrentSession(session.messages);
+        UI.finalizeMessageInDOM(msgId, fullResponse);
+      }
+    }
+  } finally {
+    UI.toggleLoading(false);
+    abortController = null;
+  }
+}
+
+// Set up message callbacks for edit/regenerate
+UI.setMessageCallbacks({
+  onEdit: handleEditMessage,
+  onRegenerate: handleRegenerateMessage
+});
+
 async function sendMessage() {
   const text = UI.elements.messageInput.value.trim();
   if (!text && pendingAttachments.length === 0) return;
