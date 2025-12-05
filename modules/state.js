@@ -294,3 +294,42 @@ export function deleteAllSessions() {
   state.sessions = [];
   createNewSession();
 }
+
+/**
+ * Update a session's title by ID
+ * @param {string} sessionId - The session ID to update
+ * @param {string} title - The new title
+ */
+export function updateSessionTitle(sessionId, title) {
+  const session = state.sessions.find(s => s.id === sessionId);
+  if (session && title) {
+    session.title = title;
+    session.needsAITitle = false;
+    saveState();
+  }
+}
+
+/**
+ * Mark a session as needing an AI-generated title
+ * @param {string} sessionId - The session ID to mark
+ */
+export function markSessionNeedsTitle(sessionId) {
+  const session = state.sessions.find(s => s.id === sessionId);
+  if (session) {
+    session.needsAITitle = true;
+    saveState();
+  }
+}
+
+/**
+ * Get all sessions that need AI-generated titles
+ * (Sessions with "New Chat" title that have enough messages)
+ * @returns {Array} - Sessions needing titles
+ */
+export function getSessionsNeedingTitles() {
+  return state.sessions.filter(s =>
+    (s.title === 'New Chat' || s.needsAITitle) &&
+    s.messages &&
+    s.messages.length >= 2
+  );
+}
