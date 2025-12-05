@@ -19,13 +19,22 @@
     "matches": ["http://localhost/*", "http://127.0.0.1/*"]
   }],
   "action": {
-    "default_title": "Open Sidekick AI",
+    "default_title": "Toggle Sidekick AI Sidebar",
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "sidebar_action": {
+    "default_panel": "sidepanel.html",
+    "default_title": "Sidekick AI",
     "default_icon": {
       "16": "icon16.png",
       "48": "icon48.png",
       "128": "icon128.png"
     },
-    "default_popup": "sidepanel.html"
+    "open_at_install": false
   },
   "background": {
     "scripts": ["background.js"]
@@ -37,4 +46,3 @@
     }
   }
 }
-
