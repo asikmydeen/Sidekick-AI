@@ -1,10 +1,10 @@
-# Terms of Service for Dyad AI Chatbot
+# Terms of Service for Sidekick AI
 
 **Last Updated: December 5, 2024**
 
 ## 1. Acceptance of Terms
 
-By installing, accessing, or using the Dyad AI Chatbot Chrome extension ("the Extension"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, do not use the Extension.
+By installing, accessing, or using the Sidekick AI Chrome extension ("the Extension"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, do not use the Extension.
 
 ---
 
@@ -178,4 +178,3 @@ For questions about these Terms, contact us at:
 ## 15. Acknowledgment
 
 BY USING THE EXTENSION, YOU ACKNOWLEDGE THAT YOU HAVE READ THESE TERMS OF SERVICE, UNDERSTAND THEM, AND AGREE TO BE BOUND BY THEM.
-

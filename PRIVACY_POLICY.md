@@ -131,4 +131,4 @@ If you have questions about this Privacy Policy, please contact us:
 
 ## Consent
 
-By using Dyad AI Chatbot, you consent to this Privacy Policy.
+By using Sidekick AI, you consent to this Privacy Policy.
