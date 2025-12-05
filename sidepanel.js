@@ -721,63 +721,44 @@ UI.elements.stopBtn.addEventListener('click', () => {
   }
 });
 
-UI.elements.micBtn.addEventListener('click', async () => {
-  // Check for both webkit and standard SpeechRecognition
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) return alert('Voice input not supported in this browser.');
+// Voice input via offscreen document (for proper microphone permissions in extension)
+let isListening = false;
 
-  if (recognition) { recognition.stop(); return; }
-
-  // First, request microphone permission explicitly
-  // This helps in extension contexts where permissions need user gesture
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    // Stop the stream immediately - we just needed permission
-    stream.getTracks().forEach(track => track.stop());
-  } catch (err) {
-    console.error('Microphone permission error:', err);
-    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-      alert('Microphone access denied. Please allow microphone permissions in your browser settings.');
-    } else if (err.name === 'NotFoundError') {
-      alert('No microphone found. Please connect a microphone and try again.');
-    } else {
-      alert(`Microphone error: ${err.message}`);
-    }
-    return;
+UI.elements.micBtn.addEventListener('click', () => {
+  if (isListening) {
+    chrome.runtime.sendMessage({ action: 'stopSpeechRecognition' });
+  } else {
+    chrome.runtime.sendMessage({ action: 'startSpeechRecognition' });
   }
+});
 
-  recognition = new SpeechRecognition();
-  recognition.continuous = false;
-  recognition.interimResults = true;
-  recognition.lang = 'en-US';
+// Listen for speech recognition events from offscreen document
+chrome.runtime.onMessage.addListener((msg) => {
+  switch (msg.action) {
+    case 'speechStarted':
+      isListening = true;
+      UI.elements.micBtn.classList.add('listening');
+      UI.elements.messageInput.placeholder = "Listening...";
+      break;
 
-  recognition.onstart = () => {
-    UI.elements.micBtn.classList.add('listening');
-    UI.elements.messageInput.placeholder = "Listening...";
-  };
-  recognition.onresult = (e) => {
-    let t = '';
-    for (let i = e.resultIndex; i < e.results.length; ++i) t += e.results[i][0].transcript;
-    UI.elements.messageInput.value = t;
-    UI.autoResizeInput();
-  };
-  recognition.onerror = (e) => {
-    console.error('Speech recognition error:', e.error);
-    UI.elements.micBtn.classList.remove('listening');
-    recognition = null;
-    UI.elements.messageInput.placeholder = "Type your message...";
-    if (e.error === 'not-allowed') {
-      alert('Speech recognition denied. Try closing and reopening the extension.');
-    } else if (e.error === 'network') {
-      alert('Network error. Speech recognition requires an internet connection.');
-    }
-  };
-  recognition.onend = () => {
-    UI.elements.micBtn.classList.remove('listening');
-    recognition = null;
-    UI.elements.messageInput.placeholder = "Type your message...";
-  };
-  recognition.start();
+    case 'speechResult':
+      UI.elements.messageInput.value = msg.transcript;
+      UI.autoResizeInput();
+      break;
+
+    case 'speechError':
+      alert(msg.error);
+      isListening = false;
+      UI.elements.micBtn.classList.remove('listening');
+      UI.elements.messageInput.placeholder = "Type your message...";
+      break;
+
+    case 'speechEnded':
+      isListening = false;
+      UI.elements.micBtn.classList.remove('listening');
+      UI.elements.messageInput.placeholder = "Type your message...";
+      break;
+  }
 });
 
 function switchToChat() {
