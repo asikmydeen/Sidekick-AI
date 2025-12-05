@@ -57,73 +57,9 @@ chrome.runtime.onInstalled.addListener(() => {
 setupSidePanel();
 setupOllamaHeaderRules();
 
-// Track offscreen document state
-let offscreenCreating = null;
-
-async function ensureOffscreenDocument() {
-  // If already creating, wait for that
-  if (offscreenCreating) {
-    return offscreenCreating;
-  }
-
-  // Check if offscreen document already exists using getContexts (Chrome 116+)
-  // or try-catch for older versions
-  try {
-    if (chrome.runtime.getContexts) {
-      const existingContexts = await chrome.runtime.getContexts({
-        contextTypes: ['OFFSCREEN_DOCUMENT']
-      });
-      if (existingContexts.length > 0) {
-        return;
-      }
-    }
-  } catch (e) {
-    console.log('getContexts not available, trying to create document');
-  }
-
-  // Create offscreen document
-  offscreenCreating = chrome.offscreen.createDocument({
-    url: 'offscreen.html',
-    reasons: ['USER_MEDIA'],
-    justification: 'Speech recognition requires microphone access'
-  }).then(() => {
-    offscreenCreating = null;
-  }).catch((err) => {
-    offscreenCreating = null;
-    // Document might already exist
-    if (!err.message.includes('single offscreen')) {
-      throw err;
-    }
-  });
-
-  return offscreenCreating;
-}
-
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.action === "ping") {
     sendResponse({ response: "pong" });
-    return false;
   }
-
-  // Handle speech recognition requests from sidepanel
-  if (msg.action === 'startSpeechRecognition') {
-    ensureOffscreenDocument().then(() => {
-      chrome.runtime.sendMessage({ target: 'offscreen', action: 'startSpeechRecognition' });
-    });
-    return false;
-  }
-
-  if (msg.action === 'stopSpeechRecognition') {
-    chrome.runtime.sendMessage({ target: 'offscreen', action: 'stopSpeechRecognition' });
-    return false;
-  }
-
-  // Forward speech events to sidepanel (from offscreen)
-  if (['speechStarted', 'speechResult', 'speechError', 'speechEnded'].includes(msg.action)) {
-    // Broadcast to all extension pages (sidepanel will receive it)
-    chrome.runtime.sendMessage(msg).catch(() => {});
-    return false;
-  }
-
   return false;
 });
