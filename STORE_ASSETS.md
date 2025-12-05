@@ -7,13 +7,13 @@
 **Prompt for AI Image Generation (DALL-E, Midjourney, etc.):**
 
 ```
-A modern, minimalist app icon for an AI chatbot Chrome extension. The design features two interlocking speech bubbles forming a "D" shape (for "Dyad"), one bubble in electric blue (#4F46E5) and one in vibrant purple (#7C3AED). A subtle sparkle or star accent suggests AI intelligence. Clean gradient background transitioning from deep blue to purple. Professional, friendly, tech-forward aesthetic. Flat design with subtle shadows. Rounded corners suitable for app icon. No text. 3D rendering style with soft lighting.
+A modern, minimalist app icon for an AI assistant Chrome extension called "Sidekick AI". The design features a friendly robot or AI companion figure merged with a chat bubble, in electric blue (#4F46E5) and vibrant purple (#7C3AED). A subtle sparkle or star accent suggests AI intelligence. Clean gradient background transitioning from deep blue to purple. Professional, friendly, approachable aesthetic. Flat design with subtle shadows. Rounded corners suitable for app icon. No text. 3D rendering style with soft lighting.
 ```
 
 **Alternative Minimalist Prompt:**
 
 ```
-Clean modern icon design: Two overlapping chat bubbles, one blue one purple, forming an abstract "infinity" or "dyad" symbol. Small sparkle accent. Gradient background from indigo to violet. Minimal, geometric, suitable for Chrome extension icon. App icon style, rounded square format, no text.
+Clean modern icon design: A stylized "S" shape formed by a flowing chat bubble with a small friendly robot face or AI spark element. Blue and purple gradient colors. Small sparkle accent. Gradient background from indigo to violet. Minimal, geometric, suitable for Chrome extension icon. App icon style, rounded square format, no text. Conveys helpfulness and intelligence.
 ```
 
 **Alternative Abstract Prompt:**
@@ -158,4 +158,3 @@ Your Universal AI Assistant in Chrome
 - Productivity
 - Developer tools
 - Writing assistant
-
