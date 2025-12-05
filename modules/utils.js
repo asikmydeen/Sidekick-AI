@@ -30,6 +30,18 @@ export async function getPageContent() {
     return null;
   } catch (err) {
     console.error("Failed to read page:", err);
+
+    // Check if this is a Firefox permission error
+    const isFirefox = navigator.userAgent.includes('Firefox');
+    if (isFirefox && (err.message.includes('Missing host permission') || err.message.includes('permission'))) {
+      return `⚠️ Firefox Permission Required\n\nTo read page content, please enable website access:\n\n1. Go to about:addons\n2. Click on "Sidekick AI"\n3. Go to "Permissions" tab\n4. Enable "Access your data for all websites"\n\nThen try again.`;
+    }
+
+    // Chrome permission error
+    if (err.message.includes('Extension manifest must request permission')) {
+      return `⚠️ Permission Required\n\nThe extension doesn't have permission to read this page. Please check extension permissions in your browser settings.`;
+    }
+
     return `Error reading page: ${err.message}`;
   }
 }
