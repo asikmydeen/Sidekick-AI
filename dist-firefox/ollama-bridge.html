@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ollama Bridge</title>
+</head>
+<body>
+    <script>
+    // This page acts as a bridge between the extension and Ollama
+    // It runs in localhost context, so no CORS issues
+
+    window.addEventListener('message', async (event) => {
+        // Only accept messages from our extension
+        if (!event.origin.startsWith('chrome-extension://')) return;
+
+        const { id, url, body } = event.data;
+
+        try {
+            console.log('[Bridge] Received request:', url);
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(body)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                event.source.postMessage({
+                    id,
+                    error: `HTTP ${response.status}: ${errorText}`
+                }, event.origin);
+                return;
+            }
+
+            // Read the streaming response
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            const chunks = [];
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                const chunk = decoder.decode(value, { stream: true });
+                chunks.push(chunk);
+            }
+
+            event.source.postMessage({
+                id,
+                data: chunks.join('')
+            }, event.origin);
+
+        } catch (error) {
+            console.error('[Bridge] Error:', error);
+            event.source.postMessage({
+                id,
+                error: error.message
+            }, event.origin);
+        }
+    });
+
+    // Signal that bridge is ready
+    if (window.parent !== window) {
+        window.parent.postMessage({ ready: true }, '*');
+    }
+    </script>
+</body>
+</html>

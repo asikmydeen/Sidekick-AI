@@ -1,0 +1,1150 @@
+// sidepanel.js
+import { initMock } from './modules/mock.js';
+import {
+  state, loadState, updateState,
+  createNewSession, deleteSession, switchSession, getCurrentSession, updateCurrentSession, deleteAllSessions,
+  getProviderCredentials, updateProviderCredentials,
+  HF_TASK_MODELS,
+  updateSessionTitle, getSessionsNeedingTitles
+} from './modules/state.js';
+import * as UI from './modules/ui.js';
+import * as API from './modules/api.js';
+import { getPageContent, readFileAsText } from './modules/utils.js';
+
+initMock();
+
+let abortController = null;
+let pendingAttachments = [];
+let isTitleGenerationInProgress = false;
+
+/**
+ * Initialize keyboard shortcuts
+ */
+function initKeyboardShortcuts() {
+  document.addEventListener('keydown', (e) => {
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const modifier = isMac ? e.metaKey : e.ctrlKey;
+
+    // Ctrl/Cmd + Enter: Send message
+    if (modifier && e.key === 'Enter') {
+      e.preventDefault();
+      if (!UI.elements.chatSection.classList.contains('hidden')) {
+        UI.elements.sendBtn.click();
+      }
+      return;
+    }
+
+    // Ctrl/Cmd + N: New chat
+    if (modifier && e.key === 'n') {
+      e.preventDefault();
+      if (!UI.elements.newChatBtn.classList.contains('hidden')) {
+        UI.elements.newChatBtn.click();
+      }
+      return;
+    }
+
+    // Ctrl/Cmd + K: Toggle search / focus search
+    if (modifier && e.key === 'k') {
+      e.preventDefault();
+      if (UI.elements.historySidebar.classList.contains('open')) {
+        UI.elements.historySearch.focus();
+      } else {
+        UI.elements.historySearch.value = '';
+        UI.renderSessionList(state.sessions, state.currentSessionId, handleSwitchSession, handleDeleteSession);
+        UI.toggleSidebar(true);
+        setTimeout(() => UI.elements.historySearch.focus(), 100);
+      }
+      return;
+    }
+
+    // Escape: Stop generation or close sidebar
+    if (e.key === 'Escape') {
+      if (abortController) {
+        abortController.abort();
+        return;
+      }
+      if (UI.elements.historySidebar.classList.contains('open')) {
+        UI.toggleSidebar(false);
+        return;
+      }
+      return;
+    }
+
+    // Ctrl/Cmd + /: Focus message input
+    if (modifier && e.key === '/') {
+      e.preventDefault();
+      if (!UI.elements.chatSection.classList.contains('hidden')) {
+        UI.elements.messageInput.focus();
+      }
+      return;
+    }
+  });
+}
+
+/**
+ * Generate AI titles for sessions that need them
+ * Called when New Chat is clicked or after first response in a session
+ */
+async function generatePendingTitles() {
+  // Don't run if already in progress or no provider configured
+  if (isTitleGenerationInProgress || !state.provider || !state.model) return;
+
+  const sessionsNeedingTitles = getSessionsNeedingTitles();
+  if (sessionsNeedingTitles.length === 0) return;
+
+  isTitleGenerationInProgress = true;
+
+  try {
+    for (const session of sessionsNeedingTitles) {
+      // Skip if session doesn't have enough messages
+      if (!session.messages || session.messages.length < 2) continue;
+
+      try {
+        const title = await API.generateChatTitle(state, session.messages);
+        if (title) {
+          updateSessionTitle(session.id, title);
+          // Update UI if sidebar is visible
+          UI.renderSessionList(state.sessions, state.currentSessionId, handleSwitchSession, handleDeleteSession);
+        }
+      } catch (err) {
+        console.warn('Failed to generate title for session:', session.id, err);
+      }
+    }
+  } finally {
+    isTitleGenerationInProgress = false;
+  }
+}
+
+/**
+ * Generate title for a specific session after first response
+ * @param {Object} session - The session to generate title for
+ */
+async function generateSessionTitle(session) {
+  if (!session || !state.provider || !state.model) return;
+  if (session.messages.length < 2) return;
+  if (session.title !== 'New Chat' && !session.needsAITitle) return;
+
+  try {
+    const title = await API.generateChatTitle(state, session.messages);
+    if (title) {
+      updateSessionTitle(session.id, title);
+      // Update UI if sidebar is visible
+      UI.renderSessionList(state.sessions, state.currentSessionId, handleSwitchSession, handleDeleteSession);
+    }
+  } catch (err) {
+    console.warn('Failed to generate session title:', err);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadState();
+  UI.applyTheme(state.theme);
+  UI.initFullPageMode(); // Initialize full-page mode if opened as tab
+  UI.initThinkBlockHandlers(); // Initialize click handlers for think blocks
+  UI.initCopyButtonHandlers(); // Initialize click handlers for code copy buttons
+  initKeyboardShortcuts(); // Initialize keyboard shortcuts
+
+  if (state.provider) {
+    UI.elements.providerSelect.value = state.provider;
+    // Load provider-specific credentials
+    loadProviderCredentials(state.provider);
+    handleProviderChange(state.provider);
+  }
+
+  if (state.systemPrompt) UI.elements.systemPromptInput.value = state.systemPrompt;
+  if (state.temperature) {
+    UI.elements.temperatureInput.value = state.temperature;
+    UI.elements.tempValueLabel.textContent = state.temperature;
+  }
+  if (state.quickPrompts) UI.elements.quickPromptsInput.value = state.quickPrompts;
+  if (state.autoRead) UI.elements.autoReadInput.checked = state.autoRead;
+
+  if (state.model) {
+    const session = getCurrentSession();
+    if (session && session.messages.length > 0) {
+      UI.elements.modelSelect.innerHTML = `<option value="${state.model}" selected>${state.model}</option>`;
+      UI.elements.modelSelectionDiv.classList.remove('hidden');
+      UI.elements.advancedSettings.classList.remove('hidden');
+      UI.elements.startChatBtn.classList.remove('hidden');
+      switchToChat();
+    }
+  }
+});
+
+UI.elements.providerSelect.addEventListener('change', (e) => handleProviderChange(e.target.value));
+
+function saveCurrentProviderCredentials() {
+  const currentProvider = state.provider;
+  if (!currentProvider) return;
+
+  let credentials = {};
+
+  switch (currentProvider) {
+    case 'openai':
+    case 'openrouter':
+    case 'anthropic':
+    case 'huggingface':
+      credentials.apiKey = UI.elements.apiKeyInput.value.trim();
+      break;
+    case 'ollama':
+      credentials.endpoint = UI.elements.endpointInput.value.trim();
+      break;
+    case 'bedrock':
+      credentials.accessKey = UI.elements.awsAccessKey.value.trim();
+      credentials.secretKey = UI.elements.awsSecretKey.value.trim();
+      credentials.sessionToken = UI.elements.awsSessionToken.value.trim();
+      credentials.region = UI.elements.awsRegion.value.trim();
+      break;
+  }
+
+  updateProviderCredentials(currentProvider, credentials);
+}
+
+function loadProviderCredentials(provider) {
+  const credentials = getProviderCredentials(provider);
+  if (!credentials) return;
+
+  // Clear all fields first
+  UI.elements.apiKeyInput.value = '';
+  UI.elements.endpointInput.value = '';
+  UI.elements.awsAccessKey.value = '';
+  UI.elements.awsSecretKey.value = '';
+  UI.elements.awsSessionToken.value = '';
+  UI.elements.awsRegion.value = 'us-east-1';
+
+  // Load provider-specific credentials
+  switch (provider) {
+    case 'openai':
+    case 'openrouter':
+    case 'anthropic':
+    case 'huggingface':
+      if (credentials.apiKey) {
+        UI.elements.apiKeyInput.value = credentials.apiKey;
+      }
+      break;
+    case 'ollama':
+      if (credentials.endpoint) {
+        UI.elements.endpointInput.value = credentials.endpoint;
+      }
+      break;
+    case 'bedrock':
+      if (credentials.accessKey) UI.elements.awsAccessKey.value = credentials.accessKey;
+      if (credentials.secretKey) UI.elements.awsSecretKey.value = credentials.secretKey;
+      if (credentials.sessionToken) UI.elements.awsSessionToken.value = credentials.sessionToken;
+      if (credentials.region) UI.elements.awsRegion.value = credentials.region;
+      break;
+  }
+
+  // Restore models and selected model
+  if (credentials.models && credentials.models.length > 0) {
+    UI.populateModelSelect(credentials.models);
+    UI.elements.modelSelectionDiv.classList.remove('hidden');
+    UI.elements.advancedSettings.classList.remove('hidden');
+    UI.elements.startChatBtn.classList.remove('hidden');
+
+    if (credentials.selectedModel) {
+      UI.elements.modelSelect.value = credentials.selectedModel;
+    }
+  }
+}
+
+function updateCredentialFieldsVisibility(provider) {
+  // Hide all credential groups
+  UI.elements.apiKeyGroup.classList.add('hidden');
+  UI.elements.endpointGroup.classList.add('hidden');
+  UI.elements.awsGroup.classList.add('hidden');
+  UI.elements.hfTaskGroup.classList.add('hidden');
+  UI.elements.hfProviderGroup.classList.add('hidden');
+
+  // Show relevant credential group
+  if (provider === 'ollama') {
+    UI.elements.endpointGroup.classList.remove('hidden');
+  } else if (provider === 'bedrock') {
+    UI.elements.awsGroup.classList.remove('hidden');
+  } else {
+    UI.elements.apiKeyGroup.classList.remove('hidden');
+  }
+
+  // Show HuggingFace task selector and provider selector
+  if (provider === 'huggingface') {
+    UI.elements.hfTaskGroup.classList.remove('hidden');
+    UI.elements.hfProviderGroup.classList.remove('hidden');
+    // Load saved task and provider
+    const credentials = getProviderCredentials(provider);
+    if (credentials?.task) {
+      UI.elements.hfTaskSelect.value = credentials.task;
+    }
+    if (credentials?.hfProvider) {
+      UI.elements.hfProviderSelect.value = credentials.hfProvider;
+    }
+  }
+}
+
+// Providers that support manual model entry (don't have reliable model listing)
+const MANUAL_MODEL_PROVIDERS = ['huggingface', 'anthropic'];
+
+function updateManualModelVisibility(provider) {
+  if (MANUAL_MODEL_PROVIDERS.includes(provider)) {
+    UI.elements.manualModelGroup.classList.remove('hidden');
+
+    // Set provider-specific hints based on task
+    if (provider === 'huggingface') {
+      const task = UI.elements.hfTaskSelect.value || 'chat';
+      updateHfTaskHint(task);
+    } else if (provider === 'anthropic') {
+      UI.elements.modelHint.innerHTML = 'e.g., <code>claude-sonnet-4-20250514</code>, <code>claude-3-5-haiku-20241022</code>';
+    }
+  } else {
+    UI.elements.manualModelGroup.classList.add('hidden');
+  }
+}
+
+function updateHfTaskHint(task) {
+  const hints = {
+    'chat': 'e.g., <code>meta-llama/Llama-3.2-3B-Instruct</code>, <code>deepseek-ai/DeepSeek-V3:novita</code>',
+    'text-to-image': 'e.g., <code>black-forest-labs/FLUX.1-dev</code>, <code>Tongyi-MAI/Z-Image-Turbo</code>',
+    'image-to-image': 'e.g., <code>black-forest-labs/FLUX.1-dev</code> (attach an image + enter transformation prompt)',
+    'text-to-video': 'e.g., <code>ali-vilab/text-to-video-ms-1.7b</code>, <code>cerspense/zeroscope_v2_576w</code>',
+    'image-to-text': 'e.g., <code>Salesforce/blip-image-captioning-large</code>',
+    'text-to-speech': 'e.g., <code>facebook/mms-tts-eng</code>, <code>suno/bark-small</code>',
+    'speech-to-text': 'e.g., <code>openai/whisper-large-v3</code>'
+  };
+  UI.elements.modelHint.innerHTML = hints[task] || hints['chat'];
+}
+
+// Handle HuggingFace task change
+UI.elements.hfTaskSelect.addEventListener('change', () => {
+  const task = UI.elements.hfTaskSelect.value;
+  updateProviderCredentials('huggingface', { task });
+  updateHfTaskHint(task);
+
+  // Update models based on task
+  const taskModels = HF_TASK_MODELS[task] || [];
+  UI.populateModelSelect(taskModels);
+
+  // Show/hide model selection
+  if (taskModels.length > 0) {
+    UI.elements.modelSelectionDiv.classList.remove('hidden');
+    UI.elements.advancedSettings.classList.remove('hidden');
+    UI.elements.startChatBtn.classList.remove('hidden');
+  }
+
+  // Save task-specific models
+  updateProviderCredentials('huggingface', { models: taskModels });
+});
+
+// Handle HuggingFace inference provider change
+UI.elements.hfProviderSelect.addEventListener('change', () => {
+  const hfProvider = UI.elements.hfProviderSelect.value;
+  updateProviderCredentials('huggingface', { hfProvider });
+});
+
+function handleProviderChange(provider) {
+  // Save current provider's credentials before switching
+  saveCurrentProviderCredentials();
+
+  // Update state
+  updateState({ provider });
+
+  // Load new provider's credentials
+  loadProviderCredentials(provider);
+
+  // Update UI visibility
+  updateCredentialFieldsVisibility(provider);
+  updateManualModelVisibility(provider);
+
+  // Reset model selection
+  UI.elements.modelSelectionDiv.classList.add('hidden');
+  UI.elements.advancedSettings.classList.add('hidden');
+  UI.elements.startChatBtn.classList.add('hidden');
+}
+
+UI.elements.themeBtn.addEventListener('click', () => {
+  const newTheme = state.theme === 'light' ? 'dark' : 'light';
+  updateState({ theme: newTheme });
+  UI.applyTheme(newTheme);
+});
+
+// Expand to full page mode
+if (UI.elements.expandBtn) {
+  UI.elements.expandBtn.addEventListener('click', () => {
+    // Open the sidepanel.html as a full tab and close sidebar
+    chrome.tabs.create({ url: chrome.runtime.getURL('sidepanel.html') });
+    // Close the sidepanel if we're in a sidebar context
+    if (window.close) {
+      window.close();
+    }
+  });
+}
+
+// Collapse back to sidebar/popup (show instructions since we can't open it programmatically)
+if (UI.elements.collapseBtn) {
+  UI.elements.collapseBtn.addEventListener('click', () => {
+    // Detect if running in Firefox (no sidePanel API)
+    const isFirefox = typeof browser !== 'undefined' || navigator.userAgent.includes('Firefox');
+    const message = isFirefox
+      ? 'To return to popup mode:\n\n1. Close this tab\n2. Click the extension icon in your browser toolbar\n\nThe popup will open with your chat history preserved.'
+      : 'To return to sidebar mode:\n\n1. Close this tab\n2. Click the extension icon in your browser toolbar\n\nThe sidebar will open with your chat history preserved.';
+    alert(message);
+  });
+}
+
+// Gallery tab filtering
+document.querySelectorAll('.gallery-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.gallery-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const filter = tab.dataset.filter;
+    const session = getCurrentSession();
+    if (session) {
+      UI.renderMediaGallery(session.messages, filter);
+    }
+  });
+});
+
+UI.elements.settingsBtn.addEventListener('click', () => UI.toggleView('config'));
+
+UI.elements.startChatBtn.addEventListener('click', () => {
+  const selectedModel = UI.elements.modelSelect.value;
+  if (!selectedModel) return UI.showStatus('Please select a model.', 'error');
+
+  updateState({
+    model: selectedModel,
+    systemPrompt: UI.elements.systemPromptInput.value.trim(),
+    temperature: parseFloat(UI.elements.temperatureInput.value),
+    quickPrompts: UI.elements.quickPromptsInput.value.trim(),
+    autoRead: UI.elements.autoReadInput.checked
+  });
+
+  switchToChat();
+});
+
+UI.elements.historyBtn.addEventListener('click', () => {
+  UI.elements.historySearch.value = ''; // Clear search on open
+  UI.renderSessionList(state.sessions, state.currentSessionId, handleSwitchSession, handleDeleteSession);
+  UI.toggleSidebar(true);
+});
+
+UI.elements.closeSidebarBtn.addEventListener('click', () => UI.toggleSidebar(false));
+
+// Search history functionality
+UI.elements.historySearch.addEventListener('input', (e) => {
+  const query = e.target.value;
+  UI.renderSessionList(state.sessions, state.currentSessionId, handleSwitchSession, handleDeleteSession, query);
+});
+
+UI.elements.newChatBtn.addEventListener('click', () => {
+  // Generate titles for any pending sessions before creating new one
+  generatePendingTitles();
+  createNewSession();
+  switchToChat();
+});
+
+UI.elements.clearHistoryBtn.addEventListener('click', () => {
+  if (confirm('Delete all history? This cannot be undone.')) {
+    deleteAllSessions();
+    UI.renderSessionList(state.sessions, state.currentSessionId, handleSwitchSession, handleDeleteSession);
+    switchToChat();
+  }
+});
+
+function handleSwitchSession(id) {
+  switchSession(id);
+  switchToChat();
+  UI.toggleSidebar(false);
+}
+
+function handleDeleteSession(id) {
+  if (confirm('Delete this chat?')) {
+    deleteSession(id);
+    UI.renderSessionList(state.sessions, state.currentSessionId, handleSwitchSession, handleDeleteSession);
+    if (state.currentSessionId !== id) switchToChat();
+  }
+}
+
+// Export functionality with format options
+function exportChat(format) {
+  const session = getCurrentSession();
+  if (!session || session.messages.length === 0) return alert('No history to export.');
+
+  let content, mimeType, extension;
+
+  if (format === 'json') {
+    // Export as JSON
+    const exportData = {
+      title: session.title,
+      id: session.id,
+      exportedAt: new Date().toISOString(),
+      messages: session.messages.map(msg => ({
+        role: msg.role,
+        content: typeof msg.content === 'string' ? msg.content :
+          msg.content.map(c => c.type === 'text' ? { type: 'text', text: c.text } : { type: c.type, description: '[media]' })
+      }))
+    };
+    content = JSON.stringify(exportData, null, 2);
+    mimeType = 'application/json';
+    extension = 'json';
+  } else {
+    // Export as Markdown (default)
+    let md = `# ${session.title}\n\n`;
+    md += `*Exported on ${new Date().toLocaleString()}*\n\n---\n\n`;
+    session.messages.forEach(msg => {
+      const roleLabel = msg.role === 'user' ? '👤 **User**' : '🤖 **Assistant**';
+      if (Array.isArray(msg.content)) {
+        const txt = msg.content.find(c => c.type === 'text')?.text || '';
+        md += `${roleLabel}\n\n${txt}\n\n*[Media Attached]*\n\n---\n\n`;
+      } else {
+        md += `${roleLabel}\n\n${msg.content}\n\n---\n\n`;
+      }
+    });
+    content = md;
+    mimeType = 'text/markdown';
+    extension = 'md';
+  }
+
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${session.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${session.id}.${extension}`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Show export menu on click
+UI.elements.exportBtn.addEventListener('click', () => {
+  const session = getCurrentSession();
+  if (!session || session.messages.length === 0) return alert('No history to export.');
+
+  // Check if menu already exists
+  let menu = document.getElementById('exportMenu');
+  if (menu) {
+    menu.remove();
+    return;
+  }
+
+  // Create export menu
+  menu = document.createElement('div');
+  menu.id = 'exportMenu';
+  menu.className = 'export-menu';
+  menu.innerHTML = `
+    <button class="export-option" data-format="md">📝 Markdown (.md)</button>
+    <button class="export-option" data-format="json">📦 JSON (.json)</button>
+  `;
+
+  // Position menu below button
+  const rect = UI.elements.exportBtn.getBoundingClientRect();
+  menu.style.position = 'fixed';
+  menu.style.top = (rect.bottom + 5) + 'px';
+  menu.style.right = (window.innerWidth - rect.right) + 'px';
+
+  document.body.appendChild(menu);
+
+  // Handle menu clicks
+  menu.addEventListener('click', (ev) => {
+    const format = ev.target.dataset.format;
+    if (format) {
+      exportChat(format);
+      menu.remove();
+    }
+  });
+
+  // Close menu when clicking outside
+  setTimeout(() => {
+    document.addEventListener('click', function closeMenu(ev) {
+      if (!menu.contains(ev.target) && ev.target !== UI.elements.exportBtn) {
+        menu.remove();
+        document.removeEventListener('click', closeMenu);
+      }
+    });
+  }, 10);
+});
+
+UI.elements.fileBtn.addEventListener('click', () => UI.elements.fileInput.click());
+
+// Page context toggle button
+UI.elements.pageContextBtn.addEventListener('click', () => {
+  const checkbox = UI.elements.includePageContent;
+  checkbox.checked = !checkbox.checked;
+  UI.elements.pageContextBtn.classList.toggle('active', checkbox.checked);
+});
+UI.elements.fileInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  // Handle image files
+  if (file.type.startsWith('image/')) {
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const base64 = evt.target.result;
+      pendingAttachments.push({ type: 'image_url', base64: base64 });
+      UI.renderAttachments(pendingAttachments, (index) => {
+        pendingAttachments.splice(index, 1);
+        UI.renderAttachments(pendingAttachments, () => {});
+      });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+    return;
+  }
+
+  // Handle audio files (for speech-to-text)
+  if (file.type.startsWith('audio/')) {
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const base64 = evt.target.result;
+      pendingAttachments.push({ type: 'audio', base64: base64, name: file.name });
+      UI.renderAttachments(pendingAttachments, (index) => {
+        pendingAttachments.splice(index, 1);
+        UI.renderAttachments(pendingAttachments, () => {});
+      });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+    return;
+  }
+
+  // Handle text files
+  try {
+    const text = await readFileAsText(file);
+    if (/[\x00-\x08\x0E-\x1F]/.test(text)) {
+      throw new Error("File content appears to be binary.");
+    }
+    const context = `\n\n[File Attachment: ${file.name}]\n\`\`\`\n${text}\n\`\`\``;
+    UI.elements.messageInput.value += context;
+    UI.autoResizeInput();
+  } catch (err) {
+    alert('Failed to read file. Please upload images, audio, or text files.');
+    console.error(err);
+  }
+  e.target.value = '';
+});
+
+UI.elements.fetchModelsBtn.addEventListener('click', async () => {
+  const provider = UI.elements.providerSelect.value;
+
+  if (!provider) return UI.showStatus('Select a provider.', 'error');
+
+  // Save current credentials
+  saveCurrentProviderCredentials();
+
+  // Get credentials for validation
+  const credentials = getProviderCredentials(provider);
+
+  // Validate credentials
+  if (provider === 'bedrock') {
+    if (!credentials.accessKey || !credentials.secretKey) {
+      return UI.showStatus('Enter AWS Credentials.', 'error');
+    }
+  } else if (provider !== 'ollama' && !credentials.apiKey) {
+    return UI.showStatus('Enter API Key.', 'error');
+  }
+
+  UI.showStatus('Fetching...', 'info');
+
+  try {
+    const models = await API.fetchModels(provider, credentials);
+    if (!models.length) throw new Error('No models found.');
+    UI.populateModelSelect(models);
+    UI.showStatus(`Found ${models.length} models.`, 'success');
+    UI.elements.modelSelectionDiv.classList.remove('hidden');
+    UI.elements.advancedSettings.classList.remove('hidden');
+    UI.elements.startChatBtn.classList.remove('hidden');
+
+    // Save fetched models to provider credentials
+    updateProviderCredentials(provider, { models: models });
+  } catch (err) {
+    UI.showStatus(`Error: ${err.message}`, 'error');
+  }
+});
+
+// Save selected model when changed
+UI.elements.modelSelect.addEventListener('change', () => {
+  const provider = state.provider;
+  const selectedModel = UI.elements.modelSelect.value;
+  if (provider && selectedModel) {
+    updateProviderCredentials(provider, { selectedModel: selectedModel });
+  }
+});
+
+// Manual model entry - Add button
+UI.elements.saveModelBtn.addEventListener('click', () => {
+  const modelName = UI.elements.manualModelInput.value.trim();
+  if (!modelName) {
+    UI.showStatus('Please enter a model name.', 'error');
+    return;
+  }
+
+  const provider = state.provider;
+
+  // Add to dropdown and select it
+  UI.addModelToSelect(modelName);
+
+  // Save to provider credentials
+  const credentials = getProviderCredentials(provider);
+  const models = credentials.models || [];
+  if (!models.includes(modelName)) {
+    models.push(modelName);
+  }
+  updateProviderCredentials(provider, { models, selectedModel: modelName });
+
+  // Show model selection and advanced settings
+  UI.elements.modelSelectionDiv.classList.remove('hidden');
+  UI.elements.advancedSettings.classList.remove('hidden');
+  UI.elements.startChatBtn.classList.remove('hidden');
+
+  // Clear input
+  UI.elements.manualModelInput.value = '';
+  UI.showStatus(`Model "${modelName}" added.`, 'success');
+});
+
+// Allow Enter key in manual model input
+UI.elements.manualModelInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    UI.elements.saveModelBtn.click();
+  }
+});
+
+UI.elements.temperatureInput.addEventListener('input', (e) => UI.elements.tempValueLabel.textContent = e.target.value);
+UI.elements.messageInput.addEventListener('input', UI.autoResizeInput);
+UI.elements.messageInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+UI.elements.sendBtn.addEventListener('click', sendMessage);
+UI.elements.stopBtn.addEventListener('click', () => {
+  if (abortController) {
+    abortController.abort();
+    abortController = null;
+    UI.stopSpeaking();
+    UI.toggleLoading(false);
+  }
+});
+
+
+
+function switchToChat() {
+  UI.toggleView('chat');
+  UI.renderChips(state.quickPrompts, (prompt) => {
+    UI.elements.messageInput.value = prompt + " ";
+    UI.elements.messageInput.focus();
+  });
+
+  const session = getCurrentSession();
+  UI.renderChat(session ? session.messages : [], state.model);
+
+  // Show expand button in sidebar mode only
+  if (UI.elements.expandBtn && !UI.isFullPageMode()) {
+    UI.elements.expandBtn.classList.remove('hidden');
+  }
+}
+
+/**
+ * Handle editing a user message
+ * @param {number} msgIndex - Index of the message to edit
+ * @param {string} currentText - Current text content of the message
+ */
+function handleEditMessage(msgIndex, currentText) {
+  const session = getCurrentSession();
+  if (!session) return;
+
+  // Put the text in the input field
+  UI.elements.messageInput.value = currentText;
+  UI.elements.messageInput.focus();
+  UI.autoResizeInput();
+
+  // Remove this message and all messages after it
+  session.messages = session.messages.slice(0, msgIndex);
+  updateCurrentSession(session.messages);
+
+  // Re-render the chat
+  UI.renderChat(session.messages, state.model);
+}
+
+/**
+ * Handle regenerating an assistant response
+ * @param {number} msgIndex - Index of the assistant message to regenerate
+ */
+async function handleRegenerateMessage(msgIndex) {
+  const session = getCurrentSession();
+  if (!session || msgIndex < 1) return;
+
+  // Find the user message before this assistant message
+  const userMsgIndex = msgIndex - 1;
+  const userMsg = session.messages[userMsgIndex];
+  if (!userMsg || userMsg.role !== 'user') return;
+
+  // Remove the assistant message and any messages after it
+  session.messages = session.messages.slice(0, msgIndex);
+  updateCurrentSession(session.messages);
+
+  // Re-render the chat
+  UI.renderChat(session.messages, state.model);
+
+  // Get the user message content
+  const userContent = userMsg.content;
+
+  // Create a new streaming message
+  const msgId = 'msg-' + Date.now();
+  const newAssistantIndex = session.messages.length; // Will be this index after push
+  UI.appendMessageToDOM('assistant', null, msgId, true, newAssistantIndex);
+
+  abortController = new AbortController();
+  let fullResponse = "";
+  UI.toggleLoading(true);
+
+  try {
+    const stream = API.streamChatApi(state, userContent, abortController.signal);
+
+    for await (const chunk of stream) {
+      fullResponse += chunk;
+      UI.updateStreamingMessage(msgId, fullResponse);
+    }
+
+    session.messages.push({ role: 'assistant', content: fullResponse });
+    updateCurrentSession(session.messages);
+    UI.updateTokenCount(session.messages);
+    UI.finalizeMessageInDOM(msgId, fullResponse);
+
+    if (state.autoRead) {
+      UI.speakText(fullResponse);
+    }
+
+  } catch (err) {
+    if (err.name !== 'AbortError') {
+      UI.removeMessage(msgId);
+      UI.appendMessageToDOM('error', `Error: ${err.message}`);
+    } else {
+      if (fullResponse) {
+        session.messages.push({ role: 'assistant', content: fullResponse });
+        updateCurrentSession(session.messages);
+        UI.finalizeMessageInDOM(msgId, fullResponse);
+      }
+    }
+  } finally {
+    UI.toggleLoading(false);
+    abortController = null;
+  }
+}
+
+// Set up message callbacks for edit/regenerate
+UI.setMessageCallbacks({
+  onEdit: handleEditMessage,
+  onRegenerate: handleRegenerateMessage
+});
+
+async function sendMessage() {
+  const text = UI.elements.messageInput.value.trim();
+  if (!text && pendingAttachments.length === 0) return;
+
+  const session = getCurrentSession();
+  if (!session) return;
+
+  UI.stopSpeaking();
+  const includePage = UI.elements.includePageContent.checked;
+  let finalText = text;
+
+  UI.toggleLoading(true);
+
+  if (includePage) {
+    const pageText = await getPageContent();
+    if (pageText) finalText += `\n\n[Page Content]:\n${pageText}`;
+  }
+
+  // Check if this is a HuggingFace multi-modal task
+  const provider = state.provider;
+  const hfTask = provider === 'huggingface' ? (getProviderCredentials('huggingface')?.task || 'chat') : null;
+
+  // Handle HuggingFace multi-modal tasks
+  if (provider === 'huggingface' && hfTask !== 'chat') {
+    await handleHuggingFaceTask(hfTask, finalText, session);
+    return;
+  }
+
+  // Standard chat flow
+  let messageContent;
+  if (pendingAttachments.length > 0) {
+    messageContent = [];
+    if (finalText) messageContent.push({ type: 'text', text: finalText });
+    pendingAttachments.forEach(att => {
+      messageContent.push({ type: 'image_url', image_url: { url: att.base64 } });
+    });
+  } else {
+    messageContent = finalText;
+  }
+
+  session.messages.push({ role: 'user', content: messageContent });
+  updateCurrentSession(session.messages);
+  const userMsgIndex = session.messages.length - 1;
+
+  UI.appendMessageToDOM('user', messageContent, null, false, userMsgIndex);
+  UI.elements.messageInput.value = '';
+  UI.elements.includePageContent.checked = false;
+  UI.autoResizeInput();
+
+  pendingAttachments = [];
+  UI.renderAttachments([], () => {});
+
+  const msgId = 'msg-' + Date.now();
+  const assistantMsgIndex = session.messages.length; // Will be this index after push
+  UI.appendMessageToDOM('assistant', null, msgId, true, assistantMsgIndex);
+
+  abortController = new AbortController();
+  let fullResponse = "";
+
+  try {
+    const stream = API.streamChatApi(state, messageContent, abortController.signal);
+
+    for await (const chunk of stream) {
+      fullResponse += chunk;
+      UI.updateStreamingMessage(msgId, fullResponse);
+    }
+
+    session.messages.push({ role: 'assistant', content: fullResponse });
+    updateCurrentSession(session.messages);
+    UI.updateTokenCount(session.messages);
+
+    UI.finalizeMessageInDOM(msgId, fullResponse);
+    if (state.autoRead) {
+      UI.speakText(fullResponse);
+    }
+
+    // Generate AI title after first exchange
+    if (session.title === 'New Chat' && session.messages.length >= 2) {
+      generateSessionTitle(session);
+    }
+
+  } catch (err) {
+    if (err.name !== 'AbortError') {
+      UI.removeMessage(msgId);
+      UI.appendMessageToDOM('error', `Error: ${err.message}`);
+    } else {
+      if (fullResponse) {
+        session.messages.push({ role: 'assistant', content: fullResponse });
+        updateCurrentSession(session.messages);
+        UI.finalizeMessageInDOM(msgId, fullResponse);
+      }
+    }
+  } finally {
+    UI.toggleLoading(false);
+    abortController = null;
+  }
+}
+
+// Handle HuggingFace multi-modal tasks (image generation, TTS, etc.)
+async function handleHuggingFaceTask(task, text, session) {
+  const credentials = getProviderCredentials('huggingface');
+  const model = state.model;
+  const apiKey = credentials.apiKey;
+  const hfProvider = credentials.hfProvider || 'auto';
+
+  UI.elements.messageInput.value = '';
+  UI.autoResizeInput();
+
+  try {
+    switch (task) {
+      case 'text-to-image': {
+        // Show user prompt
+        session.messages.push({ role: 'user', content: text });
+        updateCurrentSession(session.messages);
+        UI.appendMessageToDOM('user', text, null, false, session.messages.length - 1);
+
+        // Show loading
+        const msgId = 'msg-' + Date.now();
+        UI.appendMessageToDOM('assistant', null, msgId, true, session.messages.length);
+
+        // Generate image
+        const imageUrl = await API.textToImage(model, text, apiKey, { provider: hfProvider });
+
+        // Remove loading and show result
+        UI.removeMessage(msgId);
+        const responseContent = [
+          { type: 'generated_image', url: imageUrl, prompt: text }
+        ];
+        session.messages.push({ role: 'assistant', content: responseContent });
+        updateCurrentSession(session.messages);
+        UI.appendMessageToDOM('assistant', responseContent, null, false, session.messages.length - 1);
+        break;
+      }
+
+      case 'image-to-image': {
+        // Need an image attachment
+        if (pendingAttachments.length === 0) {
+          UI.showStatus('Please attach an image first.', 'error');
+          UI.toggleLoading(false);
+          return;
+        }
+
+        if (!text) {
+          UI.showStatus('Please enter a transformation prompt (e.g., "Turn the cat into a tiger").', 'error');
+          UI.toggleLoading(false);
+          return;
+        }
+
+        const imageData = pendingAttachments[0].base64;
+        const userContent = [
+          { type: 'text', text: text },
+          { type: 'image_url', image_url: { url: imageData } }
+        ];
+        session.messages.push({ role: 'user', content: userContent });
+        updateCurrentSession(session.messages);
+        UI.appendMessageToDOM('user', userContent, null, false, session.messages.length - 1);
+
+        pendingAttachments = [];
+        UI.renderAttachments([], () => {});
+
+        // Show loading
+        const msgId = 'msg-' + Date.now();
+        UI.appendMessageToDOM('assistant', null, msgId, true, session.messages.length);
+
+        // Transform image
+        const transformedImageUrl = await API.imageToImage(model, imageData, text, apiKey, { provider: hfProvider });
+
+        // Remove loading and show result
+        UI.removeMessage(msgId);
+        const responseContent = [
+          { type: 'generated_image', url: transformedImageUrl, prompt: text }
+        ];
+        session.messages.push({ role: 'assistant', content: responseContent });
+        updateCurrentSession(session.messages);
+        UI.appendMessageToDOM('assistant', responseContent, null, false, session.messages.length - 1);
+        break;
+      }
+
+      case 'image-to-text': {
+        // Need an image attachment
+        if (pendingAttachments.length === 0) {
+          UI.showStatus('Please attach an image first.', 'error');
+          UI.toggleLoading(false);
+          return;
+        }
+
+        const imageData = pendingAttachments[0].base64;
+        const userContent = [
+          { type: 'text', text: text || 'Describe this image' },
+          { type: 'image_url', image_url: { url: imageData } }
+        ];
+        session.messages.push({ role: 'user', content: userContent });
+        updateCurrentSession(session.messages);
+        UI.appendMessageToDOM('user', userContent, null, false, session.messages.length - 1);
+
+        pendingAttachments = [];
+        UI.renderAttachments([], () => {});
+
+        // Show loading
+        const msgId = 'msg-' + Date.now();
+        UI.appendMessageToDOM('assistant', null, msgId, true, session.messages.length);
+
+        // Get caption
+        const caption = await API.imageToText(model, imageData, apiKey, { provider: hfProvider });
+
+        // Remove loading and show result
+        UI.removeMessage(msgId);
+        session.messages.push({ role: 'assistant', content: caption });
+        updateCurrentSession(session.messages);
+        UI.appendMessageToDOM('assistant', caption, null, false, session.messages.length - 1);
+        break;
+      }
+
+      case 'text-to-video': {
+        // Show user prompt
+        session.messages.push({ role: 'user', content: text });
+        updateCurrentSession(session.messages);
+        UI.appendMessageToDOM('user', text, null, false, session.messages.length - 1);
+
+        // Show loading with video generation notice
+        const msgId = 'msg-' + Date.now();
+        UI.appendMessageToDOM('assistant', null, msgId, true, session.messages.length);
+        UI.showStatus('Generating video... This may take 30-120 seconds.', 'info');
+
+        // Generate video
+        const videoUrl = await API.textToVideo(model, text, apiKey, { provider: hfProvider });
+
+        // Remove loading and show result
+        UI.removeMessage(msgId);
+        const responseContent = [
+          { type: 'generated_video', url: videoUrl, prompt: text }
+        ];
+        session.messages.push({ role: 'assistant', content: responseContent });
+        updateCurrentSession(session.messages);
+        UI.appendMessageToDOM('assistant', responseContent, null, false, session.messages.length - 1);
+        break;
+      }
+
+      case 'text-to-speech': {
+        // Show user text
+        session.messages.push({ role: 'user', content: text });
+        updateCurrentSession(session.messages);
+        UI.appendMessageToDOM('user', text, null, false, session.messages.length - 1);
+
+        // Show loading
+        const msgId = 'msg-' + Date.now();
+        UI.appendMessageToDOM('assistant', null, msgId, true, session.messages.length);
+
+        // Generate audio
+        const audioUrl = await API.textToSpeech(model, text, apiKey, { provider: hfProvider });
+
+        // Remove loading and show result
+        UI.removeMessage(msgId);
+        const responseContent = [
+          { type: 'generated_audio', url: audioUrl }
+        ];
+        session.messages.push({ role: 'assistant', content: responseContent });
+        updateCurrentSession(session.messages);
+        UI.appendMessageToDOM('assistant', responseContent, null, false, session.messages.length - 1);
+        break;
+      }
+
+      case 'speech-to-text': {
+        // Need an audio attachment
+        if (pendingAttachments.length === 0) {
+          UI.showStatus('Please attach an audio file first.', 'error');
+          UI.toggleLoading(false);
+          return;
+        }
+
+        const audioData = pendingAttachments[0].base64;
+        const userContent = [
+          { type: 'audio_input', url: audioData }
+        ];
+        session.messages.push({ role: 'user', content: userContent });
+        updateCurrentSession(session.messages);
+        UI.appendMessageToDOM('user', userContent, null, false, session.messages.length - 1);
+
+        pendingAttachments = [];
+        UI.renderAttachments([], () => {});
+
+        // Show loading
+        const msgId = 'msg-' + Date.now();
+        UI.appendMessageToDOM('assistant', null, msgId, true, session.messages.length);
+
+        // Transcribe
+        const transcription = await API.speechToText(model, audioData, apiKey, { provider: hfProvider });
+
+        // Remove loading and show result
+        UI.removeMessage(msgId);
+        session.messages.push({ role: 'assistant', content: transcription });
+        updateCurrentSession(session.messages);
+        UI.appendMessageToDOM('assistant', transcription, null, false, session.messages.length - 1);
+        break;
+      }
+
+      default:
+        UI.showStatus(`Unknown task: ${task}`, 'error');
+    }
+
+    // Generate AI title after first exchange
+    if (session.title === 'New Chat' && session.messages.length >= 2) {
+      generateSessionTitle(session);
+    }
+
+  } catch (err) {
+    UI.appendMessageToDOM('error', `Error: ${err.message}`);
+  } finally {
+    UI.toggleLoading(false);
+  }
+}
