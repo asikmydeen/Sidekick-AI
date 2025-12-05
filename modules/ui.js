@@ -359,6 +359,13 @@ export function renderChips(quickPromptsText, onChipClick) {
   });
 }
 
+// Store callbacks for edit/regenerate functionality
+let messageCallbacks = { onEdit: null, onRegenerate: null };
+
+export function setMessageCallbacks(callbacks) {
+  messageCallbacks = { ...messageCallbacks, ...callbacks };
+}
+
 export function renderChat(messages, modelName) {
   elements.chatHistory.innerHTML = '';
   const intro = document.createElement('div');
@@ -366,8 +373,8 @@ export function renderChat(messages, modelName) {
   intro.textContent = `Chatting with ${modelName}`;
   elements.chatHistory.appendChild(intro);
 
-  messages.forEach(msg => {
-    appendMessageToDOM(msg.role, msg.content);
+  messages.forEach((msg, index) => {
+    appendMessageToDOM(msg.role, msg.content, null, false, index);
   });
   scrollToBottom();
   updateTokenCount(messages);
