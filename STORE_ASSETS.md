@@ -125,15 +125,15 @@ For Chrome Web Store, you need 1-5 screenshots (1280x800 or 640x400 pixels).
 
 ### Small Tile (440x280)
 ```
-Dyad AI
-Chat with GPT-4, Claude & more
+Sidekick AI
+Your AI companion in Chrome
 [Icon] [Screenshot preview]
 ```
 
 ### Large Tile (920x680)
 ```
-DYAD AI CHATBOT
-Your Universal AI Assistant in Chrome
+SIDEKICK AI
+Your AI Companion in Chrome's Sidebar
 
 ✓ OpenAI  ✓ Claude  ✓ Llama  ✓ Ollama
 ✓ Chat History  ✓ Dark Mode  ✓ Export
