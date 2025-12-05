@@ -964,36 +964,29 @@ body.dark-mode .think-header:hover {
   transform: translateY(-1px);
 }
 
-.chat-controls {
-  padding: 4px 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  min-height: auto;
-}
-
-.token-count {
-  font-size: 11px;
+/* Token badge - subtle counter inside input area */
+.token-badge {
+  position: absolute;
+  right: 140px;
+  bottom: 24px;
+  font-size: 10px;
   color: var(--text-muted);
-  font-weight: 500;
+  background: var(--bg-secondary);
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  opacity: 0.7;
+  pointer-events: none;
 }
 
-.context-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  cursor: pointer;
-  color: var(--text-secondary);
-  margin: 0;
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
+/* Page context button */
+.page-btn {
   transition: all var(--transition-fast);
 }
 
-.context-toggle:hover {
+.page-btn.active {
   background: var(--primary-light);
   color: var(--primary-color);
+  border-color: var(--primary-color);
 }
 
 .chat-input-area {
