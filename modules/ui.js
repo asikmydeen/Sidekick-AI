@@ -700,7 +700,10 @@ function parseMarkdown(text) {
   safeText = safeText.replace(/__THINKBLOCK_(\d+)__/g, (_match, index) => {
     const blockId = `think-${Date.now()}-${index}`;
     const block = thinkBlocks[index];
-    const content = block.content.replace(/&lt;br&gt;/g, '<br>');
+    // Convert newlines to <br> tags for proper display
+    const content = block.content
+      .replace(/\n/g, '<br>')
+      .replace(/&lt;br&gt;/g, '<br>');
     const streamingClass = block.isComplete ? '' : ' streaming';
     const statusText = block.isComplete ? 'Thinking Process' : 'Thinking...';
     const expandedClass = block.isComplete ? '' : ' expanded';
@@ -712,7 +715,7 @@ function parseMarkdown(text) {
         <span class="think-toggle">▼</span>
       </div>
       <div class="think-content">
-        <div class="think-content-inner">${content}</div>
+        <div class="think-content-inner">${content || '<em style="opacity:0.6">No thinking content</em>'}</div>
       </div>
     </div>`;
   });
