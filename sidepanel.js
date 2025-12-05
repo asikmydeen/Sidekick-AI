@@ -458,27 +458,102 @@ function handleDeleteSession(id) {
   }
 }
 
-UI.elements.exportBtn.addEventListener('click', () => {
+// Export functionality with format options
+function exportChat(format) {
   const session = getCurrentSession();
   if (!session || session.messages.length === 0) return alert('No history to export.');
 
-  let md = `# ${session.title}\n\n`;
-  session.messages.forEach(msg => {
-    if (Array.isArray(msg.content)) {
-       const txt = msg.content.find(c => c.type === 'text')?.text || '';
-       md += `### ${msg.role}\n${txt}\n[Image Attached]\n\n`;
-    } else {
-       md += `### ${msg.role}\n${msg.content}\n\n`;
-    }
-  });
+  let content, mimeType, extension;
 
-  const blob = new Blob([md], { type: 'text/markdown' });
+  if (format === 'json') {
+    // Export as JSON
+    const exportData = {
+      title: session.title,
+      id: session.id,
+      exportedAt: new Date().toISOString(),
+      messages: session.messages.map(msg => ({
+        role: msg.role,
+        content: typeof msg.content === 'string' ? msg.content :
+          msg.content.map(c => c.type === 'text' ? { type: 'text', text: c.text } : { type: c.type, description: '[media]' })
+      }))
+    };
+    content = JSON.stringify(exportData, null, 2);
+    mimeType = 'application/json';
+    extension = 'json';
+  } else {
+    // Export as Markdown (default)
+    let md = `# ${session.title}\n\n`;
+    md += `*Exported on ${new Date().toLocaleString()}*\n\n---\n\n`;
+    session.messages.forEach(msg => {
+      const roleLabel = msg.role === 'user' ? '👤 **User**' : '🤖 **Assistant**';
+      if (Array.isArray(msg.content)) {
+        const txt = msg.content.find(c => c.type === 'text')?.text || '';
+        md += `${roleLabel}\n\n${txt}\n\n*[Media Attached]*\n\n---\n\n`;
+      } else {
+        md += `${roleLabel}\n\n${msg.content}\n\n---\n\n`;
+      }
+    });
+    content = md;
+    mimeType = 'text/markdown';
+    extension = 'md';
+  }
+
+  const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `chat-${session.id}.md`;
+  a.download = `${session.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${session.id}.${extension}`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// Show export menu on click
+UI.elements.exportBtn.addEventListener('click', (e) => {
+  const session = getCurrentSession();
+  if (!session || session.messages.length === 0) return alert('No history to export.');
+
+  // Check if menu already exists
+  let menu = document.getElementById('exportMenu');
+  if (menu) {
+    menu.remove();
+    return;
+  }
+
+  // Create export menu
+  menu = document.createElement('div');
+  menu.id = 'exportMenu';
+  menu.className = 'export-menu';
+  menu.innerHTML = `
+    <button class="export-option" data-format="md">📝 Markdown (.md)</button>
+    <button class="export-option" data-format="json">📦 JSON (.json)</button>
+  `;
+
+  // Position menu below button
+  const rect = UI.elements.exportBtn.getBoundingClientRect();
+  menu.style.position = 'fixed';
+  menu.style.top = (rect.bottom + 5) + 'px';
+  menu.style.right = (window.innerWidth - rect.right) + 'px';
+
+  document.body.appendChild(menu);
+
+  // Handle menu clicks
+  menu.addEventListener('click', (ev) => {
+    const format = ev.target.dataset.format;
+    if (format) {
+      exportChat(format);
+      menu.remove();
+    }
+  });
+
+  // Close menu when clicking outside
+  setTimeout(() => {
+    document.addEventListener('click', function closeMenu(ev) {
+      if (!menu.contains(ev.target) && ev.target !== UI.elements.exportBtn) {
+        menu.remove();
+        document.removeEventListener('click', closeMenu);
+      }
+    });
+  }, 10);
 });
 
 UI.elements.fileBtn.addEventListener('click', () => UI.elements.fileInput.click());
