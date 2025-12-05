@@ -683,6 +683,11 @@ async function sendMessage() {
       UI.speakText(fullResponse);
     }
 
+    // Generate AI title after first exchange
+    if (session.title === 'New Chat' && session.messages.length >= 2) {
+      generateSessionTitle(session);
+    }
+
   } catch (err) {
     if (err.name !== 'AbortError') {
       UI.removeMessage(msgId);
