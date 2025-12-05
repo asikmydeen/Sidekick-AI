@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Dyad AI Chatbot",
+  "name": "Sidekick AI",
   "version": "2.1.0",
   "description": "A chatbot extension connecting to OpenAI, Anthropic, Hugging Face, and OpenRouter.",
   "permissions": ["storage", "activeTab", "scripting", "sidePanel", "nativeMessaging", "declarativeNetRequest"],
