@@ -10,7 +10,7 @@ By installing, accessing, or using the Sidekick AI Chrome extension ("the Extens
 
 ## 2. Description of Service
 
-Dyad AI Chatbot is a browser extension that provides an interface to communicate with various AI service providers including, but not limited to:
+Sidekick AI is a browser extension that provides an interface to communicate with various AI service providers including, but not limited to:
 
 - OpenAI
 - Anthropic
@@ -171,7 +171,7 @@ These Terms constitute the entire agreement between you and us regarding the use
 For questions about these Terms, contact us at:
 
 - **Email**: [your-email@example.com]
-- **GitHub**: [github.com/yourusername/dyad-ai-chatbot](https://github.com/yourusername/dyad-ai-chatbot)
+- **GitHub**: [github.com/yourusername/sidekick-ai](https://github.com/yourusername/sidekick-ai)
 
 ---
 
