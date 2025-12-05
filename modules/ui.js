@@ -58,7 +58,6 @@ export const elements = {
   messageInput: document.getElementById('messageInput'),
   sendBtn: document.getElementById('sendBtn'),
   stopBtn: document.getElementById('stopBtn'),
-  micBtn: document.getElementById('micBtn'),
   fileBtn: document.getElementById('fileBtn'),
   fileInput: document.getElementById('fileInput'),
   includePageContent: document.getElementById('includePageContent'),
