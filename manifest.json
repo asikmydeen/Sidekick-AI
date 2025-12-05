@@ -30,6 +30,13 @@
     "default_path": "sidepanel.html"
   },
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "scripts": ["background.js"]
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "sidekick-ai@extension.local",
+      "strict_min_version": "121.0"
+    }
   }
 }
