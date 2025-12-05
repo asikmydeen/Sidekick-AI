@@ -965,10 +965,11 @@ body.dark-mode .think-header:hover {
 }
 
 .chat-controls {
-  padding: 8px 16px;
+  padding: 4px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  min-height: auto;
 }
 
 .token-count {
