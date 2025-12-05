@@ -4,6 +4,12 @@ export async function getPageContent() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab) return null;
+
+    // Check if tab.url is available (requires 'tabs' permission)
+    if (!tab.url) {
+      return "Cannot access page URL. Please ensure the extension has the required permissions.";
+    }
+
     // Handle both Chrome and Firefox system pages
     if (tab.url.startsWith('chrome://') ||
         tab.url.startsWith('about:') ||
