@@ -1,10 +1,10 @@
-# Privacy Policy for Dyad AI Chatbot
+# Privacy Policy for Sidekick AI
 
 **Last Updated: December 5, 2024**
 
 ## Introduction
 
-Dyad AI Chatbot ("we", "our", or "the extension") is committed to protecting your privacy. This Privacy Policy explains how we handle information when you use our Chrome extension.
+Sidekick AI ("we", "our", or "the extension") is committed to protecting your privacy. This Privacy Policy explains how we handle information when you use our Chrome extension.
 
 ## Summary
 
@@ -125,11 +125,10 @@ You have the right to:
 If you have questions about this Privacy Policy, please contact us:
 
 - **Email**: [your-email@example.com]
-- **GitHub**: [github.com/yourusername/dyad-ai-chatbot](https://github.com/yourusername/dyad-ai-chatbot)
+- **GitHub**: [github.com/yourusername/sidekick-ai](https://github.com/yourusername/sidekick-ai)
 
 ---
 
 ## Consent
 
 By using Dyad AI Chatbot, you consent to this Privacy Policy.
-
