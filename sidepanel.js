@@ -4,7 +4,8 @@ import {
   state, loadState, updateState,
   createNewSession, deleteSession, switchSession, getCurrentSession, updateCurrentSession, deleteAllSessions,
   getProviderCredentials, updateProviderCredentials,
-  HF_TASK_MODELS
+  HF_TASK_MODELS,
+  updateSessionTitle, getSessionsNeedingTitles
 } from './modules/state.js';
 import * as UI from './modules/ui.js';
 import * as API from './modules/api.js';
