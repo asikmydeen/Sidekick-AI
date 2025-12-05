@@ -19,6 +19,70 @@ let pendingAttachments = [];
 let isTitleGenerationInProgress = false;
 
 /**
+ * Initialize keyboard shortcuts
+ */
+function initKeyboardShortcuts() {
+  document.addEventListener('keydown', (e) => {
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const modifier = isMac ? e.metaKey : e.ctrlKey;
+
+    // Ctrl/Cmd + Enter: Send message
+    if (modifier && e.key === 'Enter') {
+      e.preventDefault();
+      if (!UI.elements.chatSection.classList.contains('hidden')) {
+        UI.elements.sendBtn.click();
+      }
+      return;
+    }
+
+    // Ctrl/Cmd + N: New chat
+    if (modifier && e.key === 'n') {
+      e.preventDefault();
+      if (!UI.elements.newChatBtn.classList.contains('hidden')) {
+        UI.elements.newChatBtn.click();
+      }
+      return;
+    }
+
+    // Ctrl/Cmd + K: Toggle search / focus search
+    if (modifier && e.key === 'k') {
+      e.preventDefault();
+      if (UI.elements.historySidebar.classList.contains('open')) {
+        UI.elements.historySearch.focus();
+      } else {
+        UI.elements.historySearch.value = '';
+        UI.renderSessionList(state.sessions, state.currentSessionId, handleSwitchSession, handleDeleteSession);
+        UI.toggleSidebar(true);
+        setTimeout(() => UI.elements.historySearch.focus(), 100);
+      }
+      return;
+    }
+
+    // Escape: Stop generation or close sidebar
+    if (e.key === 'Escape') {
+      if (abortController) {
+        abortController.abort();
+        return;
+      }
+      if (UI.elements.historySidebar.classList.contains('open')) {
+        UI.toggleSidebar(false);
+        return;
+      }
+      return;
+    }
+
+    // Ctrl/Cmd + /: Focus message input
+    if (modifier && e.key === '/') {
+      e.preventDefault();
+      if (!UI.elements.chatSection.classList.contains('hidden')) {
+        UI.elements.messageInput.focus();
+      }
+      return;
+    }
+  });
+}
+
+/**
  * Generate AI titles for sessions that need them
  * Called when New Chat is clicked or after first response in a session
  */
