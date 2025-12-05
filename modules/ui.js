@@ -264,9 +264,34 @@ function createMediaCard(type, url, prompt) {
   return card;
 }
 
-export function renderSessionList(sessions, currentId, onSwitch, onDelete) {
+export function renderSessionList(sessions, currentId, onSwitch, onDelete, searchQuery = '') {
   elements.sessionList.innerHTML = '';
-  sessions.forEach(session => {
+
+  // Filter sessions based on search query
+  const filteredSessions = searchQuery.trim()
+    ? sessions.filter(session => {
+        const query = searchQuery.toLowerCase();
+        // Search in title
+        if ((session.title || '').toLowerCase().includes(query)) return true;
+        // Search in messages
+        return session.messages?.some(msg => {
+          const content = typeof msg.content === 'string'
+            ? msg.content
+            : msg.content?.find(c => c.type === 'text')?.text || '';
+          return content.toLowerCase().includes(query);
+        });
+      })
+    : sessions;
+
+  if (filteredSessions.length === 0) {
+    const noResults = document.createElement('div');
+    noResults.className = 'no-results';
+    noResults.textContent = searchQuery ? 'No chats found' : 'No chat history yet';
+    elements.sessionList.appendChild(noResults);
+    return;
+  }
+
+  filteredSessions.forEach(session => {
     const item = document.createElement('div');
     item.className = `session-item ${session.id === currentId ? 'active' : ''}`;
     let displayTitle = session.title || 'New Chat';
