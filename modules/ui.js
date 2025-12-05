@@ -503,12 +503,20 @@ export function appendMessageToDOM(role, content, id = null, isLoading = false, 
       controls.appendChild(editBtn);
     }
 
-    if (role === 'assistant' && textContent) {
+    if (role === 'assistant') {
+      // Get text content for speech/copy (may be updated after streaming)
+      const getTextContent = () => {
+        if (textContent) return textContent;
+        // Fallback: get from DOM if content was streamed
+        const msgDiv = div.querySelector('div') || div;
+        return msgDiv.textContent || '';
+      };
+
       const speakBtn = document.createElement('button');
       speakBtn.className = 'msg-btn';
       speakBtn.textContent = '🔊';
       speakBtn.title = 'Read aloud';
-      speakBtn.onclick = () => toggleSpeech(textContent, speakBtn);
+      speakBtn.onclick = () => toggleSpeech(getTextContent(), speakBtn);
       controls.appendChild(speakBtn);
 
       // Regenerate button for assistant messages
@@ -531,7 +539,7 @@ export function appendMessageToDOM(role, content, id = null, isLoading = false, 
       copyBtn.textContent = '📋';
       copyBtn.title = 'Copy response';
       copyBtn.onclick = () => {
-        navigator.clipboard.writeText(textContent).then(() => {
+        navigator.clipboard.writeText(getTextContent()).then(() => {
           copyBtn.textContent = '✓';
           setTimeout(() => copyBtn.textContent = '📋', 2000);
         });
