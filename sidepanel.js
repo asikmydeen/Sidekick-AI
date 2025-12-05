@@ -16,6 +16,62 @@ initMock();
 let abortController = null;
 let recognition = null;
 let pendingAttachments = [];
+let isTitleGenerationInProgress = false;
+
+/**
+ * Generate AI titles for sessions that need them
+ * Called when New Chat is clicked or after first response in a session
+ */
+async function generatePendingTitles() {
+  // Don't run if already in progress or no provider configured
+  if (isTitleGenerationInProgress || !state.provider || !state.model) return;
+
+  const sessionsNeedingTitles = getSessionsNeedingTitles();
+  if (sessionsNeedingTitles.length === 0) return;
+
+  isTitleGenerationInProgress = true;
+
+  try {
+    for (const session of sessionsNeedingTitles) {
+      // Skip if session doesn't have enough messages
+      if (!session.messages || session.messages.length < 2) continue;
+
+      try {
+        const title = await API.generateChatTitle(state, session.messages);
+        if (title) {
+          updateSessionTitle(session.id, title);
+          // Update UI if sidebar is visible
+          UI.renderSessionList(state.sessions, state.currentSessionId, handleSwitchSession, handleDeleteSession);
+        }
+      } catch (err) {
+        console.warn('Failed to generate title for session:', session.id, err);
+      }
+    }
+  } finally {
+    isTitleGenerationInProgress = false;
+  }
+}
+
+/**
+ * Generate title for a specific session after first response
+ * @param {Object} session - The session to generate title for
+ */
+async function generateSessionTitle(session) {
+  if (!session || !state.provider || !state.model) return;
+  if (session.messages.length < 2) return;
+  if (session.title !== 'New Chat' && !session.needsAITitle) return;
+
+  try {
+    const title = await API.generateChatTitle(state, session.messages);
+    if (title) {
+      updateSessionTitle(session.id, title);
+      // Update UI if sidebar is visible
+      UI.renderSessionList(state.sessions, state.currentSessionId, handleSwitchSession, handleDeleteSession);
+    }
+  } catch (err) {
+    console.warn('Failed to generate session title:', err);
+  }
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
   await loadState();
@@ -301,6 +357,8 @@ UI.elements.historyBtn.addEventListener('click', () => {
 UI.elements.closeSidebarBtn.addEventListener('click', () => UI.toggleSidebar(false));
 
 UI.elements.newChatBtn.addEventListener('click', () => {
+  // Generate titles for any pending sessions before creating new one
+  generatePendingTitles();
   createNewSession();
   switchToChat();
 });
