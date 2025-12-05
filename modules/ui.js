@@ -761,3 +761,32 @@ export function initThinkBlockHandlers() {
     }
   });
 }
+
+// Initialize copy button handlers using event delegation
+export function initCopyButtonHandlers() {
+  document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('copy-btn')) {
+      const codeWrapper = e.target.closest('.code-wrapper');
+      if (codeWrapper) {
+        const code = codeWrapper.querySelector('code');
+        if (code) {
+          const text = code.textContent;
+          navigator.clipboard.writeText(text).then(() => {
+            e.target.textContent = 'Copied!';
+            e.target.classList.add('copied');
+            setTimeout(() => {
+              e.target.textContent = 'Copy';
+              e.target.classList.remove('copied');
+            }, 2000);
+          }).catch(err => {
+            console.error('Failed to copy:', err);
+            e.target.textContent = 'Error';
+            setTimeout(() => {
+              e.target.textContent = 'Copy';
+            }, 2000);
+          });
+        }
+      }
+    }
+  });
+}
