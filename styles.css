@@ -590,6 +590,20 @@ select {
   box-shadow: var(--shadow-md);
 }
 
+/* Hide user message controls by default, show on hover */
+.message.user .msg-controls {
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  position: absolute;
+  top: -32px;
+  right: 0;
+  bottom: auto;
+}
+
+.message.user:hover .msg-controls {
+  opacity: 1;
+}
+
 .message.assistant {
   align-self: flex-start;
   background: var(--bot-msg-bg);
