@@ -557,6 +557,13 @@ UI.elements.exportBtn.addEventListener('click', () => {
 });
 
 UI.elements.fileBtn.addEventListener('click', () => UI.elements.fileInput.click());
+
+// Page context toggle button
+UI.elements.pageContextBtn.addEventListener('click', () => {
+  const checkbox = UI.elements.includePageContent;
+  checkbox.checked = !checkbox.checked;
+  UI.elements.pageContextBtn.classList.toggle('active', checkbox.checked);
+});
 UI.elements.fileInput.addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if (!file) return;
