@@ -721,12 +721,30 @@ UI.elements.stopBtn.addEventListener('click', () => {
   }
 });
 
-UI.elements.micBtn.addEventListener('click', () => {
+UI.elements.micBtn.addEventListener('click', async () => {
   // Check for both webkit and standard SpeechRecognition
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) return alert('Voice input not supported in this browser.');
 
   if (recognition) { recognition.stop(); return; }
+
+  // First, request microphone permission explicitly
+  // This helps in extension contexts where permissions need user gesture
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    // Stop the stream immediately - we just needed permission
+    stream.getTracks().forEach(track => track.stop());
+  } catch (err) {
+    console.error('Microphone permission error:', err);
+    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+      alert('Microphone access denied. Please allow microphone permissions in your browser settings.');
+    } else if (err.name === 'NotFoundError') {
+      alert('No microphone found. Please connect a microphone and try again.');
+    } else {
+      alert(`Microphone error: ${err.message}`);
+    }
+    return;
+  }
 
   recognition = new SpeechRecognition();
   recognition.continuous = false;
@@ -749,7 +767,9 @@ UI.elements.micBtn.addEventListener('click', () => {
     recognition = null;
     UI.elements.messageInput.placeholder = "Type your message...";
     if (e.error === 'not-allowed') {
-      alert('Microphone access denied. Please allow microphone permissions.');
+      alert('Speech recognition denied. Try closing and reopening the extension.');
+    } else if (e.error === 'network') {
+      alert('Network error. Speech recognition requires an internet connection.');
     }
   };
   recognition.onend = () => {
