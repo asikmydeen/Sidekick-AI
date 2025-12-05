@@ -9,10 +9,10 @@
     "scripting",
     "declarativeNetRequest",
     "nativeMessaging",
-    "tabs",
-    "<all_urls>"
+    "tabs"
   ],
   "host_permissions": [
+    "<all_urls>",
     "https://api.openai.com/*",
     "https://api.anthropic.com/*",
     "https://openrouter.ai/*",
