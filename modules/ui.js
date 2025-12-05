@@ -484,17 +484,61 @@ export function appendMessageToDOM(role, content, id = null, isLoading = false, 
       if (content) div.innerHTML = parseMarkdown(content);
     }
 
-    if (role === 'assistant' && textContent) {
-      const controls = document.createElement('div');
-      controls.className = 'msg-controls';
+    // Add controls for messages
+    const controls = document.createElement('div');
+    controls.className = 'msg-controls';
 
+    if (role === 'user' && msgIndex >= 0) {
+      // Edit button for user messages
+      const editBtn = document.createElement('button');
+      editBtn.className = 'msg-btn edit-btn';
+      editBtn.textContent = '✏️';
+      editBtn.title = 'Edit message';
+      editBtn.onclick = () => {
+        if (messageCallbacks.onEdit) {
+          messageCallbacks.onEdit(msgIndex, textContent);
+        }
+      };
+      controls.appendChild(editBtn);
+    }
+
+    if (role === 'assistant' && textContent) {
       const speakBtn = document.createElement('button');
       speakBtn.className = 'msg-btn';
       speakBtn.textContent = '🔊';
       speakBtn.title = 'Read aloud';
       speakBtn.onclick = () => toggleSpeech(textContent, speakBtn);
-
       controls.appendChild(speakBtn);
+
+      // Regenerate button for assistant messages
+      if (msgIndex >= 0) {
+        const regenBtn = document.createElement('button');
+        regenBtn.className = 'msg-btn regen-btn';
+        regenBtn.textContent = '🔄';
+        regenBtn.title = 'Regenerate response';
+        regenBtn.onclick = () => {
+          if (messageCallbacks.onRegenerate) {
+            messageCallbacks.onRegenerate(msgIndex);
+          }
+        };
+        controls.appendChild(regenBtn);
+      }
+
+      // Copy full response button
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'msg-btn';
+      copyBtn.textContent = '📋';
+      copyBtn.title = 'Copy response';
+      copyBtn.onclick = () => {
+        navigator.clipboard.writeText(textContent).then(() => {
+          copyBtn.textContent = '✓';
+          setTimeout(() => copyBtn.textContent = '📋', 2000);
+        });
+      };
+      controls.appendChild(copyBtn);
+    }
+
+    if (controls.childNodes.length > 0) {
       div.appendChild(controls);
     }
   }
