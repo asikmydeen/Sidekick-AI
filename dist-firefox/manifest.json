@@ -5,7 +5,7 @@
   "description": "A chatbot extension connecting to OpenAI, Anthropic, Hugging Face, and OpenRouter.",
   "permissions": ["storage", "activeTab", "scripting", "declarativeNetRequest", "nativeMessaging", "tabs"],
   "host_permissions": [
-    "<all_urls>",
+    "*://*/*",
     "https://api.openai.com/*",
     "https://api.anthropic.com/*",
     "https://openrouter.ai/*",
