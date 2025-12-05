@@ -62,6 +62,7 @@ export const elements = {
   fileBtn: document.getElementById('fileBtn'),
   fileInput: document.getElementById('fileInput'),
   includePageContent: document.getElementById('includePageContent'),
+  pageContextBtn: document.getElementById('pageContextBtn'),
   promptChipsContainer: document.getElementById('promptChips'),
   tokenCount: document.getElementById('tokenCount'),
   attachmentPreview: document.getElementById('attachmentPreview'),
