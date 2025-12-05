@@ -508,7 +508,7 @@ function exportChat(format) {
 }
 
 // Show export menu on click
-UI.elements.exportBtn.addEventListener('click', (e) => {
+UI.elements.exportBtn.addEventListener('click', () => {
   const session = getCurrentSession();
   if (!session || session.messages.length === 0) return alert('No history to export.');
 

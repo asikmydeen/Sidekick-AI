@@ -221,6 +221,38 @@ body {
   font-size: 13px;
 }
 
+/* Export Menu */
+.export-menu {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  overflow: hidden;
+  min-width: 160px;
+}
+
+.export-option {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-primary);
+  transition: background var(--transition-fast);
+}
+
+.export-option:hover {
+  background: var(--bg-secondary);
+}
+
+.export-option:not(:last-child) {
+  border-bottom: 1px solid var(--border-color);
+}
+
 .session-list::-webkit-scrollbar {
   width: 6px;
 }
