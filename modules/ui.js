@@ -45,6 +45,7 @@ export const elements = {
   historyBtn: document.getElementById('historyBtn'),
   newChatBtn: document.getElementById('newChatBtn'),
   historySidebar: document.getElementById('historySidebar'),
+  historySearch: document.getElementById('historySearch'),
   sessionList: document.getElementById('sessionList'),
   closeSidebarBtn: document.getElementById('closeSidebarBtn'),
   clearHistoryBtn: document.getElementById('clearHistoryBtn'),
