@@ -1,15 +1,21 @@
 // background.js
 
-// Ensure the side panel opens when the extension icon is clicked (Chrome only)
-// Firefox will use the default_popup from manifest instead
+// Ensure the side panel opens when the extension icon is clicked
 function setupSidePanel() {
-  // Check if the sidePanel API is available (Chrome 114+, not available in Firefox)
+  // Check if Chrome's sidePanel API is available (Chrome 114+)
   if (chrome.sidePanel && chrome.sidePanel.setPanelBehavior) {
     chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
       .catch((error) => console.error("Error setting panel behavior:", error));
+  }
+  // Check if Firefox's sidebarAction API is available
+  else if (chrome.sidebarAction) {
+    // Firefox: Toggle sidebar when toolbar icon is clicked
+    chrome.action.onClicked.addListener(() => {
+      chrome.sidebarAction.toggle();
+    });
+    console.log("Firefox sidebar mode enabled");
   } else {
-    // Firefox: sidePanel API not available, will use popup defined in manifest
-    console.log("sidePanel API not available (Firefox mode) - using popup instead");
+    console.log("No sidebar API available");
   }
 }
 
