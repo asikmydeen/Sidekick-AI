@@ -380,10 +380,11 @@ export function renderChat(messages, modelName) {
   updateTokenCount(messages);
 }
 
-export function appendMessageToDOM(role, content, id = null, isLoading = false) {
+export function appendMessageToDOM(role, content, id = null, isLoading = false, msgIndex = -1) {
   const div = document.createElement('div');
   div.className = `message ${role}`;
   if (id) div.id = id;
+  if (msgIndex >= 0) div.dataset.msgIndex = msgIndex;
 
   let textContent = "";
   if (typeof content === 'string') textContent = content;
