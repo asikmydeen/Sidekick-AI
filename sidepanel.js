@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadState();
   UI.applyTheme(state.theme);
   UI.initFullPageMode(); // Initialize full-page mode if opened as tab
+  UI.initThinkBlockHandlers(); // Initialize click handlers for think blocks
 
   if (state.provider) {
     UI.elements.providerSelect.value = state.provider;

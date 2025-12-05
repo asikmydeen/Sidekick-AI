@@ -705,8 +705,8 @@ function parseMarkdown(text) {
     const statusText = block.isComplete ? 'Thinking Process' : 'Thinking...';
     const expandedClass = block.isComplete ? '' : ' expanded';
 
-    return `<div class="think-block${streamingClass}${expandedClass}" id="${blockId}">
-      <div class="think-header" onclick="this.parentElement.classList.toggle('expanded')">
+    return `<div class="think-block${streamingClass}${expandedClass}" id="${blockId}" data-think-block="true">
+      <div class="think-header">
         <span class="think-icon">${block.isComplete ? '💭' : '⏳'}</span>
         <span class="think-label">${statusText}</span>
         <span class="think-toggle">▼</span>
@@ -718,4 +718,17 @@ function parseMarkdown(text) {
   });
 
   return safeText;
+}
+
+// Initialize think block click handlers using event delegation
+export function initThinkBlockHandlers() {
+  document.addEventListener('click', (e) => {
+    const header = e.target.closest('.think-header');
+    if (header) {
+      const thinkBlock = header.closest('.think-block');
+      if (thinkBlock) {
+        thinkBlock.classList.toggle('expanded');
+      }
+    }
+  });
 }
