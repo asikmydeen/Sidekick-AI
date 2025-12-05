@@ -722,10 +722,13 @@ UI.elements.stopBtn.addEventListener('click', () => {
 });
 
 UI.elements.micBtn.addEventListener('click', () => {
-  if (!('webkitSpeechRecognition' in window)) return alert('Voice not supported.');
+  // Check for both webkit and standard SpeechRecognition
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return alert('Voice input not supported in this browser.');
+
   if (recognition) { recognition.stop(); return; }
 
-  recognition = new webkitSpeechRecognition();
+  recognition = new SpeechRecognition();
   recognition.continuous = false;
   recognition.interimResults = true;
   recognition.lang = 'en-US';
@@ -739,6 +742,15 @@ UI.elements.micBtn.addEventListener('click', () => {
     for (let i = e.resultIndex; i < e.results.length; ++i) t += e.results[i][0].transcript;
     UI.elements.messageInput.value = t;
     UI.autoResizeInput();
+  };
+  recognition.onerror = (e) => {
+    console.error('Speech recognition error:', e.error);
+    UI.elements.micBtn.classList.remove('listening');
+    recognition = null;
+    UI.elements.messageInput.placeholder = "Type your message...";
+    if (e.error === 'not-allowed') {
+      alert('Microphone access denied. Please allow microphone permissions.');
+    }
   };
   recognition.onend = () => {
     UI.elements.micBtn.classList.remove('listening');
@@ -899,8 +911,9 @@ async function sendMessage() {
 
   session.messages.push({ role: 'user', content: messageContent });
   updateCurrentSession(session.messages);
+  const userMsgIndex = session.messages.length - 1;
 
-  UI.appendMessageToDOM('user', messageContent);
+  UI.appendMessageToDOM('user', messageContent, null, false, userMsgIndex);
   UI.elements.messageInput.value = '';
   UI.elements.includePageContent.checked = false;
   UI.autoResizeInput();
@@ -909,7 +922,8 @@ async function sendMessage() {
   UI.renderAttachments([], () => {});
 
   const msgId = 'msg-' + Date.now();
-  UI.appendMessageToDOM('assistant', null, msgId, true);
+  const assistantMsgIndex = session.messages.length; // Will be this index after push
+  UI.appendMessageToDOM('assistant', null, msgId, true, assistantMsgIndex);
 
   abortController = new AbortController();
   let fullResponse = "";
