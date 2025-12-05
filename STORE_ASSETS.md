@@ -19,7 +19,7 @@ Clean modern icon design: A stylized "S" shape formed by a flowing chat bubble w
 **Alternative Abstract Prompt:**
 
 ```
-Abstract AI assistant icon: A stylized neural network node transforming into a friendly chat bubble. Glowing blue and purple gradient colors (#4F46E5 to #8B5CF6). Emanating subtle light rays suggesting intelligence and helpfulness. Modern flat design with depth. Professional tech aesthetic. Chrome extension app icon format, no text, clean edges.
+Abstract AI sidekick icon: A friendly companion figure - half robot, half chat bubble - with a warm, helpful expression. Glowing blue and purple gradient colors (#4F46E5 to #8B5CF6). Emanating subtle light rays suggesting intelligence and helpfulness. Modern flat design with depth. Professional tech aesthetic. Chrome extension app icon format, no text, clean edges. Conveys the idea of a helpful AI sidekick.
 ```
 
 ---
@@ -28,12 +28,12 @@ Abstract AI assistant icon: A stylized neural network node transforming into a f
 
 ### Short Description (132 characters max)
 ```
-Chat with GPT-4, Claude, Llama & more AI models in Chrome's sidebar. Multi-provider, private, feature-rich AI assistant.
+Your AI sidekick in Chrome! Chat with GPT-4, Claude, Llama & more in the sidebar. Multi-provider, private, feature-rich.
 ```
 
 ### Detailed Description
 ```
-🤖 DYAD AI CHATBOT - Your Universal AI Assistant
+🤖 SIDEKICK AI - Your AI Companion in Chrome's Sidebar
 
 Connect to all major AI providers from one beautiful interface, right in Chrome's sidebar.
 
