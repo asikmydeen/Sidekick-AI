@@ -4,7 +4,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "rm -rf dist && mkdir -p dist/modules dist/lib && cp manifest.json sidepanel.html sidepanel.js styles.css background.js content.js ollama-bridge.html icon*.png dist/ && cp modules/*.js dist/modules/ && cp lib/*.js dist/lib/",
+    "build": "npm run build:chrome",
+    "build:chrome": "rm -rf dist && mkdir -p dist/modules dist/lib && cp manifest.chrome.json dist/manifest.json && cp sidepanel.html sidepanel.js styles.css background.js content.js ollama-bridge.html icon*.png dist/ && cp modules/*.js dist/modules/ && cp lib/*.js dist/lib/",
+    "build:firefox": "rm -rf dist-firefox && mkdir -p dist-firefox/modules dist-firefox/lib && cp manifest.firefox.json dist-firefox/manifest.json && cp sidepanel.html sidepanel.js styles.css background.js content.js ollama-bridge.html icon*.png dist-firefox/ && cp modules/*.js dist-firefox/modules/ && cp lib/*.js dist-firefox/lib/",
+    "build:all": "npm run build:chrome && npm run build:firefox",
     "preview": "vite preview"
   },
   "devDependencies": {
