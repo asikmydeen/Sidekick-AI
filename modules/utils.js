@@ -4,7 +4,13 @@ export async function getPageContent() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab) return null;
-    if (tab.url.startsWith('chrome://')) return "Cannot read system pages.";
+    // Handle both Chrome and Firefox system pages
+    if (tab.url.startsWith('chrome://') ||
+        tab.url.startsWith('about:') ||
+        tab.url.startsWith('moz-extension://') ||
+        tab.url.startsWith('chrome-extension://')) {
+      return "Cannot read system or extension pages.";
+    }
 
     const results = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
