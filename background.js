@@ -57,9 +57,56 @@ chrome.runtime.onInstalled.addListener(() => {
 setupSidePanel();
 setupOllamaHeaderRules();
 
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+// Track offscreen document state
+let offscreenCreated = false;
+
+async function ensureOffscreenDocument() {
+  if (offscreenCreated) return;
+
+  // Check if offscreen document already exists
+  const existingContexts = await chrome.runtime.getContexts({
+    contextTypes: ['OFFSCREEN_DOCUMENT']
+  });
+
+  if (existingContexts.length > 0) {
+    offscreenCreated = true;
+    return;
+  }
+
+  // Create offscreen document
+  await chrome.offscreen.createDocument({
+    url: 'offscreen.html',
+    reasons: ['USER_MEDIA'],
+    justification: 'Speech recognition requires microphone access'
+  });
+  offscreenCreated = true;
+}
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === "ping") {
     sendResponse({ response: "pong" });
+    return false;
   }
+
+  // Handle speech recognition requests from sidepanel
+  if (msg.action === 'startSpeechRecognition') {
+    ensureOffscreenDocument().then(() => {
+      chrome.runtime.sendMessage({ target: 'offscreen', action: 'startSpeechRecognition' });
+    });
+    return false;
+  }
+
+  if (msg.action === 'stopSpeechRecognition') {
+    chrome.runtime.sendMessage({ target: 'offscreen', action: 'stopSpeechRecognition' });
+    return false;
+  }
+
+  // Forward speech events to sidepanel (from offscreen)
+  if (['speechStarted', 'speechResult', 'speechError', 'speechEnded'].includes(msg.action)) {
+    // Broadcast to all extension pages (sidepanel will receive it)
+    chrome.runtime.sendMessage(msg).catch(() => {});
+    return false;
+  }
+
   return false;
 });
