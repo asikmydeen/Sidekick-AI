@@ -14,7 +14,6 @@ import { getPageContent, readFileAsText } from './modules/utils.js';
 initMock();
 
 let abortController = null;
-let recognition = null;
 let pendingAttachments = [];
 let isTitleGenerationInProgress = false;
 
