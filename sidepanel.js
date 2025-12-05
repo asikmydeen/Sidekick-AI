@@ -823,7 +823,8 @@ async function handleRegenerateMessage(msgIndex) {
 
   // Create a new streaming message
   const msgId = 'msg-' + Date.now();
-  UI.appendMessageToDOM('assistant', null, msgId, true);
+  const newAssistantIndex = session.messages.length; // Will be this index after push
+  UI.appendMessageToDOM('assistant', null, msgId, true, newAssistantIndex);
 
   abortController = new AbortController();
   let fullResponse = "";
@@ -983,11 +984,11 @@ async function handleHuggingFaceTask(task, text, session) {
         // Show user prompt
         session.messages.push({ role: 'user', content: text });
         updateCurrentSession(session.messages);
-        UI.appendMessageToDOM('user', text);
+        UI.appendMessageToDOM('user', text, null, false, session.messages.length - 1);
 
         // Show loading
         const msgId = 'msg-' + Date.now();
-        UI.appendMessageToDOM('assistant', null, msgId, true);
+        UI.appendMessageToDOM('assistant', null, msgId, true, session.messages.length);
 
         // Generate image
         const imageUrl = await API.textToImage(model, text, apiKey, { provider: hfProvider });
@@ -999,7 +1000,7 @@ async function handleHuggingFaceTask(task, text, session) {
         ];
         session.messages.push({ role: 'assistant', content: responseContent });
         updateCurrentSession(session.messages);
-        UI.appendMessageToDOM('assistant', responseContent);
+        UI.appendMessageToDOM('assistant', responseContent, null, false, session.messages.length - 1);
         break;
       }
 
@@ -1024,14 +1025,14 @@ async function handleHuggingFaceTask(task, text, session) {
         ];
         session.messages.push({ role: 'user', content: userContent });
         updateCurrentSession(session.messages);
-        UI.appendMessageToDOM('user', userContent);
+        UI.appendMessageToDOM('user', userContent, null, false, session.messages.length - 1);
 
         pendingAttachments = [];
         UI.renderAttachments([], () => {});
 
         // Show loading
         const msgId = 'msg-' + Date.now();
-        UI.appendMessageToDOM('assistant', null, msgId, true);
+        UI.appendMessageToDOM('assistant', null, msgId, true, session.messages.length);
 
         // Transform image
         const transformedImageUrl = await API.imageToImage(model, imageData, text, apiKey, { provider: hfProvider });
@@ -1043,7 +1044,7 @@ async function handleHuggingFaceTask(task, text, session) {
         ];
         session.messages.push({ role: 'assistant', content: responseContent });
         updateCurrentSession(session.messages);
-        UI.appendMessageToDOM('assistant', responseContent);
+        UI.appendMessageToDOM('assistant', responseContent, null, false, session.messages.length - 1);
         break;
       }
 
@@ -1062,14 +1063,14 @@ async function handleHuggingFaceTask(task, text, session) {
         ];
         session.messages.push({ role: 'user', content: userContent });
         updateCurrentSession(session.messages);
-        UI.appendMessageToDOM('user', userContent);
+        UI.appendMessageToDOM('user', userContent, null, false, session.messages.length - 1);
 
         pendingAttachments = [];
         UI.renderAttachments([], () => {});
 
         // Show loading
         const msgId = 'msg-' + Date.now();
-        UI.appendMessageToDOM('assistant', null, msgId, true);
+        UI.appendMessageToDOM('assistant', null, msgId, true, session.messages.length);
 
         // Get caption
         const caption = await API.imageToText(model, imageData, apiKey, { provider: hfProvider });
@@ -1078,7 +1079,7 @@ async function handleHuggingFaceTask(task, text, session) {
         UI.removeMessage(msgId);
         session.messages.push({ role: 'assistant', content: caption });
         updateCurrentSession(session.messages);
-        UI.appendMessageToDOM('assistant', caption);
+        UI.appendMessageToDOM('assistant', caption, null, false, session.messages.length - 1);
         break;
       }
 
@@ -1086,11 +1087,11 @@ async function handleHuggingFaceTask(task, text, session) {
         // Show user prompt
         session.messages.push({ role: 'user', content: text });
         updateCurrentSession(session.messages);
-        UI.appendMessageToDOM('user', text);
+        UI.appendMessageToDOM('user', text, null, false, session.messages.length - 1);
 
         // Show loading with video generation notice
         const msgId = 'msg-' + Date.now();
-        UI.appendMessageToDOM('assistant', null, msgId, true);
+        UI.appendMessageToDOM('assistant', null, msgId, true, session.messages.length);
         UI.showStatus('Generating video... This may take 30-120 seconds.', 'info');
 
         // Generate video
@@ -1103,7 +1104,7 @@ async function handleHuggingFaceTask(task, text, session) {
         ];
         session.messages.push({ role: 'assistant', content: responseContent });
         updateCurrentSession(session.messages);
-        UI.appendMessageToDOM('assistant', responseContent);
+        UI.appendMessageToDOM('assistant', responseContent, null, false, session.messages.length - 1);
         break;
       }
 
@@ -1111,11 +1112,11 @@ async function handleHuggingFaceTask(task, text, session) {
         // Show user text
         session.messages.push({ role: 'user', content: text });
         updateCurrentSession(session.messages);
-        UI.appendMessageToDOM('user', text);
+        UI.appendMessageToDOM('user', text, null, false, session.messages.length - 1);
 
         // Show loading
         const msgId = 'msg-' + Date.now();
-        UI.appendMessageToDOM('assistant', null, msgId, true);
+        UI.appendMessageToDOM('assistant', null, msgId, true, session.messages.length);
 
         // Generate audio
         const audioUrl = await API.textToSpeech(model, text, apiKey, { provider: hfProvider });
@@ -1127,7 +1128,7 @@ async function handleHuggingFaceTask(task, text, session) {
         ];
         session.messages.push({ role: 'assistant', content: responseContent });
         updateCurrentSession(session.messages);
-        UI.appendMessageToDOM('assistant', responseContent);
+        UI.appendMessageToDOM('assistant', responseContent, null, false, session.messages.length - 1);
         break;
       }
 
@@ -1145,14 +1146,14 @@ async function handleHuggingFaceTask(task, text, session) {
         ];
         session.messages.push({ role: 'user', content: userContent });
         updateCurrentSession(session.messages);
-        UI.appendMessageToDOM('user', userContent);
+        UI.appendMessageToDOM('user', userContent, null, false, session.messages.length - 1);
 
         pendingAttachments = [];
         UI.renderAttachments([], () => {});
 
         // Show loading
         const msgId = 'msg-' + Date.now();
-        UI.appendMessageToDOM('assistant', null, msgId, true);
+        UI.appendMessageToDOM('assistant', null, msgId, true, session.messages.length);
 
         // Transcribe
         const transcription = await API.speechToText(model, audioData, apiKey, { provider: hfProvider });
@@ -1161,7 +1162,7 @@ async function handleHuggingFaceTask(task, text, session) {
         UI.removeMessage(msgId);
         session.messages.push({ role: 'assistant', content: transcription });
         updateCurrentSession(session.messages);
-        UI.appendMessageToDOM('assistant', transcription);
+        UI.appendMessageToDOM('assistant', transcription, null, false, session.messages.length - 1);
         break;
       }
 
