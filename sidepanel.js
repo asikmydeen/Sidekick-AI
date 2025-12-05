@@ -78,6 +78,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   UI.applyTheme(state.theme);
   UI.initFullPageMode(); // Initialize full-page mode if opened as tab
   UI.initThinkBlockHandlers(); // Initialize click handlers for think blocks
+  UI.initCopyButtonHandlers(); // Initialize click handlers for code copy buttons
 
   if (state.provider) {
     UI.elements.providerSelect.value = state.provider;
@@ -350,11 +351,18 @@ UI.elements.startChatBtn.addEventListener('click', () => {
 });
 
 UI.elements.historyBtn.addEventListener('click', () => {
+  UI.elements.historySearch.value = ''; // Clear search on open
   UI.renderSessionList(state.sessions, state.currentSessionId, handleSwitchSession, handleDeleteSession);
   UI.toggleSidebar(true);
 });
 
 UI.elements.closeSidebarBtn.addEventListener('click', () => UI.toggleSidebar(false));
+
+// Search history functionality
+UI.elements.historySearch.addEventListener('input', (e) => {
+  const query = e.target.value;
+  UI.renderSessionList(state.sessions, state.currentSessionId, handleSwitchSession, handleDeleteSession, query);
+});
 
 UI.elements.newChatBtn.addEventListener('click', () => {
   // Generate titles for any pending sessions before creating new one
