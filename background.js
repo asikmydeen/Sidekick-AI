@@ -58,28 +58,45 @@ setupSidePanel();
 setupOllamaHeaderRules();
 
 // Track offscreen document state
-let offscreenCreated = false;
+let offscreenCreating = null;
 
 async function ensureOffscreenDocument() {
-  if (offscreenCreated) return;
+  // If already creating, wait for that
+  if (offscreenCreating) {
+    return offscreenCreating;
+  }
 
-  // Check if offscreen document already exists
-  const existingContexts = await chrome.runtime.getContexts({
-    contextTypes: ['OFFSCREEN_DOCUMENT']
-  });
-
-  if (existingContexts.length > 0) {
-    offscreenCreated = true;
-    return;
+  // Check if offscreen document already exists using getContexts (Chrome 116+)
+  // or try-catch for older versions
+  try {
+    if (chrome.runtime.getContexts) {
+      const existingContexts = await chrome.runtime.getContexts({
+        contextTypes: ['OFFSCREEN_DOCUMENT']
+      });
+      if (existingContexts.length > 0) {
+        return;
+      }
+    }
+  } catch (e) {
+    console.log('getContexts not available, trying to create document');
   }
 
   // Create offscreen document
-  await chrome.offscreen.createDocument({
+  offscreenCreating = chrome.offscreen.createDocument({
     url: 'offscreen.html',
     reasons: ['USER_MEDIA'],
     justification: 'Speech recognition requires microphone access'
+  }).then(() => {
+    offscreenCreating = null;
+  }).catch((err) => {
+    offscreenCreating = null;
+    // Document might already exist
+    if (!err.message.includes('single offscreen')) {
+      throw err;
+    }
   });
-  offscreenCreated = true;
+
+  return offscreenCreating;
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
