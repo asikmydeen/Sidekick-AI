@@ -673,8 +673,13 @@ export function updateTokenCount(messages) {
   const count = estimateTokens(totalTxt);
   const limit = 128000;
   const percent = Math.min((count / limit) * 100, 100).toFixed(1);
-  elements.tokenCount.textContent = `${count.toLocaleString()} tokens used`;
-  elements.tokenCount.title = `Approx. ${percent}% of 128k context window`;
+  // Show compact token count
+  if (count >= 1000) {
+    elements.tokenCount.textContent = `${(count / 1000).toFixed(1)}k`;
+  } else {
+    elements.tokenCount.textContent = count.toString();
+  }
+  elements.tokenCount.title = `${count.toLocaleString()} tokens (~${percent}% of context)`;
 }
 
 export function removeMessage(id) {
