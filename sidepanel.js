@@ -720,45 +720,7 @@ UI.elements.stopBtn.addEventListener('click', () => {
   }
 });
 
-// Voice input via offscreen document (for proper microphone permissions in extension)
-let isListening = false;
 
-UI.elements.micBtn.addEventListener('click', () => {
-  if (isListening) {
-    chrome.runtime.sendMessage({ action: 'stopSpeechRecognition' });
-  } else {
-    chrome.runtime.sendMessage({ action: 'startSpeechRecognition' });
-  }
-});
-
-// Listen for speech recognition events from offscreen document
-chrome.runtime.onMessage.addListener((msg) => {
-  switch (msg.action) {
-    case 'speechStarted':
-      isListening = true;
-      UI.elements.micBtn.classList.add('listening');
-      UI.elements.messageInput.placeholder = "Listening...";
-      break;
-
-    case 'speechResult':
-      UI.elements.messageInput.value = msg.transcript;
-      UI.autoResizeInput();
-      break;
-
-    case 'speechError':
-      alert(msg.error);
-      isListening = false;
-      UI.elements.micBtn.classList.remove('listening');
-      UI.elements.messageInput.placeholder = "Type your message...";
-      break;
-
-    case 'speechEnded':
-      isListening = false;
-      UI.elements.micBtn.classList.remove('listening');
-      UI.elements.messageInput.placeholder = "Type your message...";
-      break;
-  }
-});
 
 function switchToChat() {
   UI.toggleView('chat');
