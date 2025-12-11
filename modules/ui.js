@@ -14,12 +14,6 @@ export const elements = {
   endpointInput: document.getElementById('endpoint'),
   endpointGroup: document.getElementById('endpointGroup'),
 
-  awsGroup: document.getElementById('awsGroup'),
-  awsAccessKey: document.getElementById('awsAccessKey'),
-  awsSecretKey: document.getElementById('awsSecretKey'),
-  awsSessionToken: document.getElementById('awsSessionToken'),
-  awsRegion: document.getElementById('awsRegion'),
-
   hfTaskGroup: document.getElementById('hfTaskGroup'),
   hfTaskSelect: document.getElementById('hfTask'),
   hfTaskHint: document.getElementById('hfTaskHint'),

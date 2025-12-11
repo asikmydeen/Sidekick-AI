@@ -1,5 +1,4 @@
 // modules/api.js
-import { signRequest } from './aws.js';
 import { getCurrentProviderCredentials } from './state.js';
 import { InferenceClient } from '../lib/huggingface-inference.js';
 
@@ -44,23 +43,6 @@ export async function fetchModels(provider, credentials) {
       url = `${base}/api/tags`;
       transform = (data) => data.models.map(m => m.name);
       break;
-    case 'bedrock':
-      // ListFoundationModels
-      const region = credentials.region || 'us-east-1';
-      url = `https://bedrock.${region}.amazonaws.com/foundation-models?byOutputModality=TEXT`;
-      const signedHeaders = await signRequest({
-        method: 'GET',
-        url,
-        headers: { 'content-type': 'application/json' },
-        accessKey: credentials.accessKey,
-        secretKey: credentials.secretKey,
-        sessionToken: credentials.sessionToken,
-        region,
-        service: 'bedrock'
-      });
-      headers = signedHeaders;
-      transform = (data) => data.modelSummaries.map(m => m.modelId).sort();
-      break;
     default:
       throw new Error('Unknown provider');
   }
@@ -95,7 +77,7 @@ export async function* streamChatApi(state, newMsgContent, signal) {
 
   // Prepare history
   const history = [];
-  if (systemPrompt && provider !== 'bedrock') history.push({ role: 'system', content: systemPrompt });
+  if (systemPrompt) history.push({ role: 'system', content: systemPrompt });
 
   const rawMessages = messages.map(m => ({ role: m.role, content: m.content }));
 
@@ -181,51 +163,6 @@ export async function* streamChatApi(state, newMsgContent, signal) {
         }
       }
     }
-  } else if (provider === 'bedrock') {
-     // Bedrock Non-Streaming (Simple Implementation for now)
-     // To support streaming with AWS SigV4 via REST without SDK requires complex event-stream binary parsing.
-     // Fallback to non-streaming invocation for stability.
-
-     const region = credentials.region || 'us-east-1';
-     url = `https://bedrock-runtime.${region}.amazonaws.com/model/${model}/converse`;
-
-     const bedrockMessages = rawMessages.map(m => {
-        const contentBlock = [];
-        if (Array.isArray(m.content)) {
-           m.content.forEach(c => {
-             if (c.type === 'text') contentBlock.push({ text: c.text });
-           });
-        } else {
-           contentBlock.push({ text: m.content });
-        }
-        return { role: m.role, content: contentBlock };
-     });
-
-     const bodyObj = {
-       messages: bedrockMessages,
-       inferenceConfig: { temperature, maxTokens: 2048 }
-     };
-     if (systemPrompt) bodyObj.system = [{ text: systemPrompt }];
-
-     const body = JSON.stringify(bodyObj);
-     const signedHeaders = await signRequest({
-        method: 'POST',
-        url,
-        headers: { 'content-type': 'application/json' },
-        body,
-        accessKey: credentials.accessKey,
-        secretKey: credentials.secretKey,
-        sessionToken: credentials.sessionToken,
-        region,
-        service: 'bedrock'
-     });
-
-     const response = await fetch(url, { method: 'POST', headers: signedHeaders, body, signal });
-     if (!response.ok) throw new Error(await response.text());
-
-     const json = await response.json();
-     const text = json.output?.message?.content?.[0]?.text || '';
-     yield text;
   } else if (provider === 'huggingface') {
     // Hugging Face Router API - OpenAI-compatible endpoint
     // Supports multiple providers with format: model-name or model-name:provider
@@ -479,8 +416,7 @@ export async function generateChatTitle(state, messages) {
     (provider === 'openrouter' && credentials.apiKey) ||
     (provider === 'anthropic' && credentials.apiKey) ||
     (provider === 'huggingface' && credentials.apiKey) ||
-    (provider === 'ollama' && credentials.endpoint) ||
-    (provider === 'bedrock' && credentials.accessKey && credentials.secretKey)
+    (provider === 'ollama' && credentials.endpoint)
   );
 
   if (!hasCredentials) return null;
@@ -558,31 +494,6 @@ export async function generateChatTitle(state, messages) {
       if (!response.ok) return null;
       const json = await response.json();
       generatedTitle = json.choices?.[0]?.message?.content?.trim() || '';
-
-    } else if (provider === 'bedrock') {
-      const region = credentials.region || 'us-east-1';
-      const url = `https://bedrock-runtime.${region}.amazonaws.com/model/${model}/converse`;
-      const body = JSON.stringify({
-        messages: [{ role: 'user', content: [{ text: titlePrompt }] }],
-        inferenceConfig: { temperature: 0.3, maxTokens: 20 }
-      });
-
-      const signedHeaders = await signRequest({
-        method: 'POST',
-        url,
-        headers: { 'content-type': 'application/json' },
-        body,
-        accessKey: credentials.accessKey,
-        secretKey: credentials.secretKey,
-        sessionToken: credentials.sessionToken,
-        region,
-        service: 'bedrock'
-      });
-
-      const response = await fetch(url, { method: 'POST', headers: signedHeaders, body });
-      if (!response.ok) return null;
-      const json = await response.json();
-      generatedTitle = json.output?.message?.content?.[0]?.text?.trim() || '';
     }
 
     // Clean up the title - remove quotes, limit length

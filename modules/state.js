@@ -33,15 +33,7 @@ export let state = {
     openrouter: { apiKey: '', selectedModel: '', models: [] },
     anthropic: { apiKey: '', selectedModel: '', models: [] },
     huggingface: { apiKey: '', selectedModel: '', models: [], task: 'chat', taskModels: {} },
-    ollama: { endpoint: 'http://localhost:11434', selectedModel: '', models: [] },
-    bedrock: {
-      accessKey: '',
-      secretKey: '',
-      sessionToken: '',
-      region: 'us-east-1',
-      selectedModel: '',
-      models: []
-    }
+    ollama: { endpoint: 'http://localhost:11434', selectedModel: '', models: [] }
   }
 };
 
@@ -140,15 +132,7 @@ export async function loadState() {
         openrouter: { apiKey: '', selectedModel: '', models: [] },
         anthropic: { apiKey: '', selectedModel: '', models: [] },
         huggingface: { apiKey: '', selectedModel: '', models: [] },
-        ollama: { endpoint: 'http://localhost:11434', selectedModel: '', models: [] },
-        bedrock: {
-          accessKey: '',
-          secretKey: '',
-          sessionToken: '',
-          region: 'us-east-1',
-          selectedModel: '',
-          models: []
-        }
+        ollama: { endpoint: 'http://localhost:11434', selectedModel: '', models: [] }
       };
 
       // Migrate old credentials to provider-specific storage
@@ -163,27 +147,11 @@ export async function loadState() {
       if (stored.chatState.endpoint) {
         stored.chatState.providerCredentials.ollama.endpoint = stored.chatState.endpoint || 'http://localhost:11434';
       }
-
-      if (stored.chatState.awsAccessKey) {
-        stored.chatState.providerCredentials.bedrock.accessKey = stored.chatState.awsAccessKey;
-      }
-      if (stored.chatState.awsSecretKey) {
-        stored.chatState.providerCredentials.bedrock.secretKey = stored.chatState.awsSecretKey;
-      }
-      if (stored.chatState.awsSessionToken) {
-        stored.chatState.providerCredentials.bedrock.sessionToken = stored.chatState.awsSessionToken;
-      }
-      if (stored.chatState.awsRegion) {
-        stored.chatState.providerCredentials.bedrock.region = stored.chatState.awsRegion;
-      }
     }
 
-    // Ensure defaults for Ollama and Bedrock
+    // Ensure defaults for Ollama
     if (!state.providerCredentials.ollama.endpoint) {
       state.providerCredentials.ollama.endpoint = 'http://localhost:11434';
-    }
-    if (!state.providerCredentials.bedrock.region) {
-      state.providerCredentials.bedrock.region = 'us-east-1';
     }
 
     // Ensure models and selectedModel fields exist for all providers

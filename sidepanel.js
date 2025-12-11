@@ -189,12 +189,6 @@ function saveCurrentProviderCredentials() {
     case 'ollama':
       credentials.endpoint = UI.elements.endpointInput.value.trim();
       break;
-    case 'bedrock':
-      credentials.accessKey = UI.elements.awsAccessKey.value.trim();
-      credentials.secretKey = UI.elements.awsSecretKey.value.trim();
-      credentials.sessionToken = UI.elements.awsSessionToken.value.trim();
-      credentials.region = UI.elements.awsRegion.value.trim();
-      break;
   }
 
   updateProviderCredentials(currentProvider, credentials);
@@ -207,10 +201,6 @@ function loadProviderCredentials(provider) {
   // Clear all fields first
   UI.elements.apiKeyInput.value = '';
   UI.elements.endpointInput.value = '';
-  UI.elements.awsAccessKey.value = '';
-  UI.elements.awsSecretKey.value = '';
-  UI.elements.awsSessionToken.value = '';
-  UI.elements.awsRegion.value = 'us-east-1';
 
   // Load provider-specific credentials
   switch (provider) {
@@ -226,12 +216,6 @@ function loadProviderCredentials(provider) {
       if (credentials.endpoint) {
         UI.elements.endpointInput.value = credentials.endpoint;
       }
-      break;
-    case 'bedrock':
-      if (credentials.accessKey) UI.elements.awsAccessKey.value = credentials.accessKey;
-      if (credentials.secretKey) UI.elements.awsSecretKey.value = credentials.secretKey;
-      if (credentials.sessionToken) UI.elements.awsSessionToken.value = credentials.sessionToken;
-      if (credentials.region) UI.elements.awsRegion.value = credentials.region;
       break;
   }
 
@@ -252,15 +236,12 @@ function updateCredentialFieldsVisibility(provider) {
   // Hide all credential groups
   UI.elements.apiKeyGroup.classList.add('hidden');
   UI.elements.endpointGroup.classList.add('hidden');
-  UI.elements.awsGroup.classList.add('hidden');
   UI.elements.hfTaskGroup.classList.add('hidden');
   UI.elements.hfProviderGroup.classList.add('hidden');
 
   // Show relevant credential group
   if (provider === 'ollama') {
     UI.elements.endpointGroup.classList.remove('hidden');
-  } else if (provider === 'bedrock') {
-    UI.elements.awsGroup.classList.remove('hidden');
   } else {
     UI.elements.apiKeyGroup.classList.remove('hidden');
   }
@@ -632,11 +613,7 @@ UI.elements.fetchModelsBtn.addEventListener('click', async () => {
   const credentials = getProviderCredentials(provider);
 
   // Validate credentials
-  if (provider === 'bedrock') {
-    if (!credentials.accessKey || !credentials.secretKey) {
-      return UI.showStatus('Enter AWS Credentials.', 'error');
-    }
-  } else if (provider !== 'ollama' && !credentials.apiKey) {
+  if (provider !== 'ollama' && !credentials.apiKey) {
     return UI.showStatus('Enter API Key.', 'error');
   }
 

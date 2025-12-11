@@ -18,3 +18,5 @@ dist/modules/mock.js
 dist/modules/state.js
 dist/modules/ui.js
 dist/modules/utils.js
+
+node_modules/

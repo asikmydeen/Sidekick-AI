@@ -4,27 +4,36 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run build:chrome",
-    "build:chrome": "rm -rf dist && mkdir -p dist/modules dist/lib && cp manifest.chrome.json dist/manifest.json && cp sidepanel.html sidepanel.js styles.css background.js content.js ollama-bridge.html icon*.png dist/ && cp modules/*.js dist/modules/ && cp lib/*.js dist/lib/",
-    "build:firefox": "rm -rf dist-firefox && mkdir -p dist-firefox/modules dist-firefox/lib && cp manifest.firefox.json dist-firefox/manifest.json && cp sidepanel.html sidepanel.js styles.css background.js content.js ollama-bridge.html icon*.png dist-firefox/ && cp modules/*.js dist-firefox/modules/ && cp lib/*.js dist-firefox/lib/",
-    "build:all": "npm run build:chrome && npm run build:firefox",
+    "dev:firefox": "vite --config vite.config.firefox.js",
+    "build": "vite build && node -e \"const fs=require('fs');const d=JSON.parse(fs.readFileSync('dist/manifest.json'));const s=JSON.parse(fs.readFileSync('manifest.json'));if(s.key){d.key=s.key;fs.writeFileSync('dist/manifest.json',JSON.stringify(d,null,2));console.log('✓ Key restored')}\"",
+    "build:chrome": "node scripts/build-chrome.js",
+    "build:firefox": "node scripts/build-firefox.js",
+    "build:store": "node scripts/build-chrome.js",
+    "build:both": "npm run build:chrome && npm run build:firefox",
+    "build:all": "npm run build:both",
     "preview": "vite preview"
   },
   "devDependencies": {
-    "vite": "^5.2.0"
+    "javascript-obfuscator": "^5.0.1",
+    "rollup-plugin-obfuscator": "^1.1.0",
+    "terser": "^5.44.1",
+    "vite": "^5.2.0",
+    "vite-plugin-static-copy": "^3.1.4"
   },
   "main": "background.js",
   "dependencies": {
-    "@huggingface/inference": "^4.13.4",
-    "esbuild": "^0.21.5",
-    "nanoid": "^3.3.11",
-    "picocolors": "^1.1.1",
-    "postcss": "^8.5.6",
-    "rollup": "^4.53.3",
-    "source-map-js": "^1.2.1"
+    "@huggingface/inference": "^4.13.4"
   },
-  "keywords": [],
+  "keywords": [
+    "chrome-extension",
+    "firefox-addon",
+    "ai",
+    "chatbot",
+    "openai",
+    "anthropic",
+    "ollama"
+  ],
   "author": "",
   "license": "ISC",
-  "description": ""
+  "description": "AI chatbot browser extension supporting multiple providers"
 }
