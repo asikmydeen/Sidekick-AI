@@ -20,3 +20,7 @@ dist/modules/ui.js
 dist/modules/utils.js
 
 node_modules/
+*.zip
+.DS_Store
+*.log
+firebase-debug.log
