@@ -1,12 +1,11 @@
 {
   "manifest_version": 3,
   "name": "Sidekick AI",
-  "version": "2.1.3",
+  "version": "2.1.5",
   "description": "A chatbot extension connecting to OpenAI, Anthropic, Hugging Face, and OpenRouter.",
   "permissions": [
     "storage",
     "activeTab",
-    "scripting",
     "sidePanel",
     "declarativeNetRequest"
   ],
